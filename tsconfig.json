@@ -1,0 +1,22 @@
+{
+    "compilerOptions": {
+        "lib": ["ESNext", "Dom"],
+        "module": "esnext",
+        "target": "es2020",
+        "moduleResolution": "bundler",
+        "moduleDetection": "force",
+        "allowImportingTsExtensions": true,
+        "noEmit": true,
+        "composite": true,
+        "strict": true,
+        "downlevelIteration": true,
+        "skipLibCheck": true,
+        "jsx": "react-jsx",
+        "allowSyntheticDefaultImports": true,
+        "forceConsistentCasingInFileNames": true,
+        "allowJs": true,
+        "types": [
+            "bun-types" // add Bun global
+        ]
+    }
+}

@@ -1,0 +1,87 @@
+dialog#nostrModal {
+    @media (max-width: 767px) {
+        width: 100%;
+    }
+    @media (min-width: 768px) {
+        width: 50%;
+    }
+    margin: 6rem auto;
+    border: 1px rgba(0, 0, 0, 0.6) solid;
+    border-radius: 10px;
+    outline: none;
+    boxshadow: 0 1rem 2rem rgba(0, 0, 0, 0.3);
+}
+
+dialog#nostrModal::backdrop {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+dialog#nostrModal > div {
+    padding: 0.875rem;
+    position: relative;
+}
+
+dialog#nostrModal > div > button#nostrModalClose {
+    position: absolute;
+    top: 0rem;
+    right: 0rem;
+    border: none;
+    font-weight: bold;
+    padding: 0;
+    background: transparent;
+}
+
+dialog#nostrModal > div > button#nostrModalClose:hover {
+    color: #555;
+}
+
+dialog#nostrModal > div > h2#nostrModalTitle {
+    margin: 1rem 0 0 0;
+    text-align: center;
+}
+
+dialog#nostrModal > div > form#nostrModalForm {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+dialog#nostrModal > div > form#nostrModalForm .inputWrapper {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+dialog#nostrModal > div > form#nostrModalForm input[type="text"] {
+    padding: 0.5rem;
+    border: 1px rgba(0, 0, 0, 0.6) solid;
+    border-radius: 5px;
+    flex-grow: 1;
+    outline: none;
+}
+
+dialog#nostrModal > div > form#nostrModalForm button[type="submit"] {
+    width: 100%;
+    padding: 0.5rem;
+    border: none;
+    border-radius: 5px;
+    background: #000;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+dialog#nostrModal > div > form#nostrModalForm button[type="submit"]:hover {
+    background: #333;
+}
+
+dialog#nostrModal > div > #nostrModalLearnMore {
+    margin-top: 2rem;
+    text-align: center;
+    font-size: 0.75rem;
+    color: #555;
+}
