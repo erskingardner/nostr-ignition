@@ -4,7 +4,32 @@ A standalone, drop-in library to help new users to Nostr create accounts with an
 
 ### To use:
 
-TODO
+First, add the JS file from CDN.
+
+```html
+<!-- TODO: UPDATE URL -->
+<script src="./dist/index.js"></script>
+```
+
+Then, initialize the library once the DOM is ready to go.
+
+```html
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        NostrIgnition.init({ appName: "DemoApp" });
+    });
+</script>
+```
+
+The `init` method takes an options argument. Options are an object that looks like the following.
+
+```js
+options = {
+    appName: "<The name of your app>",
+};
+```
+
+## Contributing
 
 ### To install dependencies:
 

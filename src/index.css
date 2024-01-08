@@ -5,6 +5,12 @@ dialog#nostrModal {
     @media (min-width: 768px) {
         width: 50%;
     }
+    @media (min-width: 1024px) {
+        width: 40%;
+    }
+    @media (min-width: 1440px) {
+        width: 30%;
+    }
     margin: 6rem auto;
     border: 1px rgba(0, 0, 0, 0.6) solid;
     border-radius: 10px;

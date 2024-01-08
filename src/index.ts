@@ -1,5 +1,33 @@
-(() => {
+const NostrIgnition = (() => {
     const css = "./src/index.css";
+
+    type NostrIgnitionOptions = {
+        appName: string;
+    };
+
+    let options: NostrIgnitionOptions;
+
+    const init = (ignitionOptions: NostrIgnitionOptions) => {
+        // Only do something if the window.nostr object doesn't exist
+        if (!(window as any).nostr) {
+            options = ignitionOptions; // Set the options
+            loadCss(css); // Load the css file
+            const modal = createModal(); // Create the modal element
+
+            // Create the window.nostr object and anytime it's called, show the modal
+            Object.defineProperty(window, "nostr", {
+                get: function () {
+                    showModal(modal);
+                },
+            });
+
+            // Add event listener to close the modal
+            const nostrModalClose = document.getElementById("nostrModalClose") as HTMLButtonElement;
+            nostrModalClose.addEventListener("click", function () {
+                modal.close();
+            });
+        }
+    };
 
     // Function to create and show the modal using <dialog>
     const createModal = (): HTMLDialogElement => {
@@ -11,7 +39,7 @@
         const dialogContent: HTMLDivElement = document.createElement("div");
         dialogContent.innerHTML = `
             <button id="nostrModalClose"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x-square"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg></button>
-            <h2 id="nostrModalTitle">This app uses Nostr</h2>
+            <h2 id="nostrModalTitle">${options.appName} uses Nostr for accounts</h2>
             <p>Would you like to create a new Nostr account? Identities on Nostr are portable so you'll be able to use this account on any other Nostr client.</p>
             <form id="nostrModalForm">
                 <span class="inputWrapper">
@@ -42,23 +70,8 @@
         dialog.showModal();
     };
 
-    document.addEventListener("DOMContentLoaded", function () {
-        // Only do something if the window.nostr object doesn't exist
-        if (!(window as any).nostr) {
-            loadCss(css); // Load the css file
-            const modal = createModal(); // Create the modal element
-            // Create the window.nostr object
-            Object.defineProperty(window, "nostr", {
-                get: function () {
-                    showModal(modal);
-                },
-            });
-
-            // Add event listener to close the modal
-            const nostrModalClose = document.getElementById("nostrModalClose") as HTMLButtonElement;
-            nostrModalClose.addEventListener("click", function () {
-                modal.close();
-            });
-        }
-    });
+    // Finally, return the init method as the only public method
+    return {
+        init,
+    };
 })();
