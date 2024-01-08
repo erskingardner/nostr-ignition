@@ -69,6 +69,18 @@ dialog#nostrModal > div > form#nostrModalForm input[type="text"] {
     outline: none;
 }
 
+dialog#nostrModal > div > form#nostrModalForm input[type="text"].invalid {
+    border: 1px red solid;
+}
+
+dialog#nostrModal > div #nostrModalNip05Error {
+    color: red;
+    display: none;
+    align-self: flex-start;
+    font-size: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
 dialog#nostrModal > div > form#nostrModalForm button[type="submit"] {
     width: 100%;
     padding: 0.5rem;
@@ -83,6 +95,12 @@ dialog#nostrModal > div > form#nostrModalForm button[type="submit"] {
 
 dialog#nostrModal > div > form#nostrModalForm button[type="submit"]:hover {
     background: #333;
+}
+
+dialog#nostrModal > div > form#nostrModalForm button[type="submit"]:disabled {
+    background: #555;
+    cursor: not-allowed;
+    color: #ccc;
 }
 
 dialog#nostrModal > div > #nostrModalLearnMore {

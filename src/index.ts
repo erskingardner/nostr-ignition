@@ -1,3 +1,5 @@
+import { fetchBunkers, checkNip05Availability } from "./nostr";
+
 const NostrIgnition = (() => {
     const css = "./src/index.css";
 
@@ -26,6 +28,30 @@ const NostrIgnition = (() => {
             nostrModalClose.addEventListener("click", function () {
                 modal.close();
             });
+
+            // Add event listener to the username input to check availability
+            const nostrModalNip05 = document.getElementById("nostrModalNip05") as HTMLInputElement;
+            const nostrModalSubmit = document.getElementById(
+                "nostrModalSubmit"
+            ) as HTMLButtonElement;
+            const nostrModalNip05Error = document.getElementById(
+                "nostrModalNip05Error"
+            ) as HTMLSpanElement;
+            nostrModalNip05.addEventListener("input", function () {
+                checkNip05Availability(`${nostrModalNip05.value}@nostr.me`).then((available) => {
+                    if (available) {
+                        nostrModalNip05.setCustomValidity("");
+                        nostrModalSubmit.disabled = false;
+                        nostrModalNip05.classList.remove("invalid");
+                        nostrModalNip05Error.style.display = "none";
+                    } else {
+                        nostrModalSubmit.disabled = true;
+                        nostrModalNip05.setCustomValidity("Username is not available");
+                        nostrModalNip05.classList.add("invalid");
+                        nostrModalNip05Error.style.display = "block";
+                    }
+                });
+            });
         }
     };
 
@@ -45,7 +71,8 @@ const NostrIgnition = (() => {
                 <span class="inputWrapper">
                     <input type="text" id="nostrModalNip05" name="nostrModalNip05" placeholder="Username" required> @nostr.me
                 </span>
-                <button type="submit" id="nostrModalSubmit">Create account</button>
+                <span id="nostrModalNip05Error">Username not available</span>
+                <button type="submit" id="nostrModalSubmit" disabled>Create account</button>
             </form>
             <div id="nostrModalLearnMore">Not sure what Nostr is? Check out <a href="https://nostr.how" target="_blank">Nostr.how</a> for more info</div>
         `;
@@ -73,5 +100,7 @@ const NostrIgnition = (() => {
     // Finally, return the init method as the only public method
     return {
         init,
+        fetchBunkers,
+        checkNip05Availability,
     };
 })();
