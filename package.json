@@ -28,6 +28,7 @@
         "bun-types": "latest",
         "eslint": "^8.0.1",
         "eslint-config-standard-with-typescript": "latest",
+        "eslint-config-prettier": "^9.1.0",
         "eslint-plugin-import": "^2.25.2",
         "eslint-plugin-n": "^16.0.0",
         "eslint-plugin-promise": "^6.0.0",
@@ -37,7 +38,6 @@
         "typescript": "^5.0.0"
     },
     "dependencies": {
-        "eslint-config-prettier": "^9.1.0",
         "nostr-tools": "^2.1.2"
     }
 }
