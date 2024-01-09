@@ -1,4 +1,4 @@
-import { fetchBunkers, checkNip05Availability } from "./nostr";
+import { Nip46 } from "./nip46";
 
 const NostrIgnition = (() => {
     const css = "./src/index.css";
@@ -8,8 +8,10 @@ const NostrIgnition = (() => {
     };
 
     let options: NostrIgnitionOptions;
+    let nip46: Nip46 = new Nip46();
 
     const init = (ignitionOptions: NostrIgnitionOptions) => {
+        console.log("Initializing Nostr Ignition...");
         // Only do something if the window.nostr object doesn't exist
         if (!(window as any).nostr) {
             options = ignitionOptions; // Set the options
@@ -38,19 +40,25 @@ const NostrIgnition = (() => {
                 "nostrModalNip05Error"
             ) as HTMLSpanElement;
             nostrModalNip05.addEventListener("input", function () {
-                checkNip05Availability(`${nostrModalNip05.value}@nostr.me`).then((available) => {
-                    if (available) {
-                        nostrModalNip05.setCustomValidity("");
-                        nostrModalSubmit.disabled = false;
-                        nostrModalNip05.classList.remove("invalid");
-                        nostrModalNip05Error.style.display = "none";
-                    } else {
-                        nostrModalSubmit.disabled = true;
-                        nostrModalNip05.setCustomValidity("Username is not available");
-                        nostrModalNip05.classList.add("invalid");
-                        nostrModalNip05Error.style.display = "block";
-                    }
-                });
+                nip46
+                    .checkNip05Availability(`${nostrModalNip05.value}@nostr.me`)
+                    .then((available) => {
+                        if (available) {
+                            nostrModalNip05.setCustomValidity("");
+                            nostrModalSubmit.disabled = false;
+                            nostrModalNip05.classList.remove("invalid");
+                            nostrModalNip05Error.style.display = "none";
+                        } else {
+                            nostrModalSubmit.disabled = true;
+                            nostrModalNip05.setCustomValidity("Username is not available");
+                            nostrModalNip05.classList.add("invalid");
+                            nostrModalNip05Error.style.display = "block";
+                        }
+                    });
+            });
+            nostrModalSubmit.addEventListener("click", async function (event) {
+                event.preventDefault(); // Prevent form submission
+                await nip46.ping(); // Ping for now.
             });
         }
     };
@@ -83,6 +91,8 @@ const NostrIgnition = (() => {
         return dialog;
     };
 
+    const submitModal = (event: Event) => {};
+
     // Function to load css file
     const loadCss = (url: string): void => {
         const linkElement: HTMLLinkElement = document.createElement("link");
@@ -100,7 +110,5 @@ const NostrIgnition = (() => {
     // Finally, return the init method as the only public method
     return {
         init,
-        fetchBunkers,
-        checkNip05Availability,
     };
 })();
