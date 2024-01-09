@@ -1,4 +1,3 @@
-import "websocket-polyfill";
 import { SimplePool } from "nostr-tools/pool";
 import { generateSecretKey, getPublicKey, finalizeEvent, type Event } from "nostr-tools/pure";
 import type { SubCloser } from "nostr-tools";
