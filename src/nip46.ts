@@ -1,6 +1,6 @@
 import { SimplePool } from "nostr-tools/pool";
 import { generateSecretKey, getPublicKey, finalizeEvent, type Event } from "nostr-tools/pure";
-import type { SubCloser } from "nostr-tools";
+import type { SubCloser, SubscribeManyParams } from "nostr-tools";
 import { encrypt, decrypt } from "nostr-tools/nip04";
 import { NostrConnect, Handlerinformation } from "nostr-tools/kinds";
 import { EventEmitter } from "events";
@@ -23,6 +23,16 @@ type nip46Response = {
     result: string;
     error?: string;
     event: Event;
+};
+
+type BunkerProfile = {
+    pubkey: string;
+    domain: string;
+    nip05: string;
+    name: string;
+    picture: string;
+    about: string;
+    website: string;
 };
 
 export class Nip46 extends EventEmitter {
@@ -78,18 +88,24 @@ export class Nip46 extends EventEmitter {
     private subscribeToNostrConnectEvents(): void {
         // Bail early if we don't have a local keypair
         if (!this.keys) return;
+        const keys = this.keys;
+        const subManyParams: SubscribeManyParams = {
+            async onevent(event) {
+                const decryptedContent = await decrypt(
+                    keys.privateKey,
+                    event.pubkey,
+                    event.content
+                );
+                console.log("Received event", event, decryptedContent);
+            },
+            oneose() {
+                console.log("EOSE received");
+            },
+        };
         this.subscription = this.pool.subscribeMany(
             this.relays,
             [{ kinds: [NostrConnect, 24134], "#p": [this.keys.publicKey] }],
-            {
-                async onevent(event) {
-                    console.log("Received event", event);
-                    // TODO: need to parse the response properly (super doesn't work here?)
-                },
-                oneose() {
-                    console.log("EOSE received");
-                },
-            }
+            subManyParams
         );
     }
 
@@ -98,12 +114,33 @@ export class Nip46 extends EventEmitter {
      *
      * @returns A promise that resolves to an array of events showing the available bunkers.
      */
-    async fetchBunkers(): Promise<Event[]> {
+    async fetchBunkers(): Promise<BunkerProfile[]> {
         const events = await this.pool.querySync(this.relays, { kinds: [Handlerinformation] });
+        // Filter for events that handle the connect event kind
         const filteredEvents = events.filter((event) =>
             event.tags.some((tag) => tag[0] === "k" && tag[1] === NostrConnect.toString())
         );
-        return filteredEvents;
+
+        // Validate bunkers by checking their NIP-05 and pubkey
+        const validatedBunkers = filteredEvents.filter(async (event) => {
+            const content = JSON.parse(event.content);
+            const valid = await this.validateBunkerNip05(content.nip05, event.pubkey);
+            return valid;
+        });
+
+        // Map the events to a more useful format
+        return validatedBunkers.map((event) => {
+            const content = JSON.parse(event.content);
+            return {
+                pubkey: event.pubkey,
+                nip05: content.nip05,
+                domain: content.nip05.split("@")[1],
+                name: content.name || content.display_name,
+                picture: content.picture,
+                about: content.about,
+                website: content.website,
+            };
+        });
     }
 
     /**
@@ -119,16 +156,25 @@ export class Nip46 extends EventEmitter {
         let [username, domain] = nip05.split("@");
         const response = await fetch(`https://${domain}/.well-known/nostr.json?name=${username}`);
         const json = await response.json();
+        console.log(json);
         return json.names[username] === undefined ? true : false;
     }
 
     /**
+     * Validates a Bunkers NIP-05.
      *
-     *
-     * TODO: Validate domain and NIP-05 of Bunker in use.
-     *
-     *
+     * @param nip05 - The NIP05 to validate.
+     * @param pubkey - The public key to compare against.
+     * @returns A promise that resolves to a boolean indicating whether the NIP05 is valid.
      */
+    async validateBunkerNip05(nip05: string, pubkey: string): Promise<boolean> {
+        if (nip05.split("@").length !== 2) return false;
+
+        let [_username, domain] = nip05.split("@");
+        const response = await fetch(`https://${domain}/.well-known/nostr.json?name=_`);
+        const json = await response.json();
+        return json.names["_"] === pubkey;
+    }
 
     /**
      * Parses a response event and decrypts its content using the recipient's private key.

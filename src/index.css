@@ -37,8 +37,13 @@ dialog#nostrModal > div > button#nostrModalClose {
     background: transparent;
 }
 
-dialog#nostrModal > div > button#nostrModalClose:hover {
-    color: #555;
+dialog#nostrModal > div > button#nostrModalClose svg {
+    stroke: #444;
+}
+dialog#nostrModal > div > button#nostrModalClose:hover svg {
+    color: #000;
+    fill: #eee;
+    stroke: #000;
 }
 
 dialog#nostrModal > div > h2#nostrModalTitle {
@@ -61,7 +66,16 @@ dialog#nostrModal > div > form#nostrModalForm .inputWrapper {
     gap: 0.5rem;
 }
 
-dialog#nostrModal > div > form#nostrModalForm input[type="text"] {
+dialog#nostrModal > div > form#nostrModalForm .inputWrapperFull {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+}
+
+dialog#nostrModal > div > form#nostrModalForm input[type="text"],
+dialog#nostrModal > div > form#nostrModalForm input[type="email"] {
     padding: 0.5rem;
     border: 1px rgba(0, 0, 0, 0.6) solid;
     border-radius: 5px;
@@ -69,8 +83,21 @@ dialog#nostrModal > div > form#nostrModalForm input[type="text"] {
     outline: none;
 }
 
-dialog#nostrModal > div > form#nostrModalForm input[type="text"].invalid {
+dialog#nostrModal > div > form#nostrModalForm input[type="text"].invalid,
+dialog#nostrModal > div > form#nostrModalForm input[type="email"].invalid {
     border: 1px red solid;
+}
+
+dialog#nostrModal > div > form#nostrModalForm select {
+    padding: 0.5rem;
+    border: 1px rgba(0, 0, 0, 0.6) solid;
+    border-radius: 5px;
+    flex-grow: 1;
+    outline: none;
+}
+
+dialog#nostrModal > div > form#nostrModalForm label {
+    font-size: 0.875rem;
 }
 
 dialog#nostrModal > div #nostrModalNip05Error {
