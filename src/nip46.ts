@@ -4,6 +4,7 @@ import type { SubCloser, SubscribeManyParams } from "nostr-tools";
 import { encrypt, decrypt } from "nostr-tools/nip04";
 import { NostrConnect, Handlerinformation } from "nostr-tools/kinds";
 import { EventEmitter } from "events";
+import { parse } from "nostr-tools/nip10";
 
 const nostrMePubkey = "9c1636cda4be9bce36fe06f99f71c21525b109e0f6f206eb7a5f72093ec89f02";
 const defaultRelays = ["wss://relay.nostr.band", "wss://relay.nsecbunker.com"];
@@ -89,14 +90,11 @@ export class Nip46 extends EventEmitter {
         // Bail early if we don't have a local keypair
         if (!this.keys) return;
         const keys = this.keys;
+        const parseResponseEvent = this.parseResponseEvent.bind(this);
         const subManyParams: SubscribeManyParams = {
             async onevent(event) {
-                const decryptedContent = await decrypt(
-                    keys.privateKey,
-                    event.pubkey,
-                    event.content
-                );
-                console.log("Received event", event, decryptedContent);
+                const res = await parseResponseEvent(event);
+                console.log("Parsed event", res);
             },
             oneose() {
                 console.log("EOSE received");
@@ -156,7 +154,6 @@ export class Nip46 extends EventEmitter {
         let [username, domain] = nip05.split("@");
         const response = await fetch(`https://${domain}/.well-known/nostr.json?name=${username}`);
         const json = await response.json();
-        console.log(json);
         return json.names[username] === undefined ? true : false;
     }
 
@@ -232,7 +229,7 @@ export class Nip46 extends EventEmitter {
 
     /**
      * Connects to a remote server using the provided keys and remote public key.
-     * Optionally, a secret can be provided for additional authentication.key
+     * Optionally, a secret can be provided for additional authentication.
      *
      * @throws {Error} If no keys are found or no remote public key is found.
      * @param secret - Optional secret for additional authentication.
