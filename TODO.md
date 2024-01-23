@@ -10,6 +10,7 @@ A simple drop-in library to allow apps to implement NIP-46 remote signing in an 
 ## 👨‍💻 IN PROGRESS
 
 -   Implement new account creation - JG
+    -   Popup doesn't redirect
 
 ## 🚢 DONE
 

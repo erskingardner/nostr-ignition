@@ -8,6 +8,7 @@ import { parse } from "nostr-tools/nip10";
 
 const nostrMePubkey = "9c1636cda4be9bce36fe06f99f71c21525b109e0f6f206eb7a5f72093ec89f02";
 const defaultRelays = ["wss://relay.nostr.band", "wss://relay.nsecbunker.com"];
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type KeyPair = { privateKey: Uint8Array; publicKey: string };
 
@@ -90,11 +91,12 @@ export class Nip46 extends EventEmitter {
         // Bail early if we don't have a local keypair
         if (!this.keys) return;
         const keys = this.keys;
+        const nip46 = this;
         const parseResponseEvent = this.parseResponseEvent.bind(this);
         const subManyParams: SubscribeManyParams = {
             async onevent(event) {
                 const res = await parseResponseEvent(event);
-                console.log("Parsed event", res);
+                nip46.emit("parsedResponseEvent", res);
             },
             oneose() {
                 console.log("EOSE received");
@@ -125,6 +127,8 @@ export class Nip46 extends EventEmitter {
             const valid = await this.validateBunkerNip05(content.nip05, event.pubkey);
             return valid;
         });
+
+        this.emit("bunkers", "Valid bunkers found");
 
         // Map the events to a more useful format
         return validatedBunkers.map((event) => {
@@ -183,7 +187,6 @@ export class Nip46 extends EventEmitter {
      */
     async parseResponseEvent(event: Event): Promise<nip46Response | nip46Request> {
         if (!this.keys) throw new Error("No keys found");
-
         const decryptedContent = await decrypt(this.keys.privateKey, event.pubkey, event.content);
         const parsedContent = JSON.parse(decryptedContent);
         const { id, method, params, result, error } = parsedContent;
@@ -196,6 +199,7 @@ export class Nip46 extends EventEmitter {
 
     /**
      * Sends a ping request to the remote server.
+     * Requires permission/access rights to bunker.
      * @throws {Error} If no keys are found or no remote public key is found.
      * @returns {Promise<void>}
      */
@@ -265,15 +269,13 @@ export class Nip46 extends EventEmitter {
         await Promise.any(this.pool.publish(this.relays, verifiedEvent));
     }
 
-    async createAccount(nip05: string): Promise<void> {
+    async createAccount(username: string, domain: string, email?: string): Promise<void> {
         if (!this.keys) throw new Error("No keys found");
         if (!this.remotePubkey) throw new Error("No remote public key found");
-        if (nip05.split("@").length !== 2) throw new Error("Invalid nip05");
-
-        let [username, domain] = nip05.split("@");
+        if (email && !emailRegex.test(email)) throw new Error("Invalid email");
 
         const reqId = this.generateReqId();
-        const params = [username, domain];
+        const params = [username, domain, email];
 
         // Encrypt the content for the bunker
         const encryptedContent = await encrypt(

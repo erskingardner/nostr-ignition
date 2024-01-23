@@ -5,6 +5,7 @@ const NostrIgnition = (() => {
 
     type NostrIgnitionOptions = {
         appName: string;
+        redirectUri: string;
         relays?: string[];
     };
 
@@ -35,6 +36,10 @@ const NostrIgnition = (() => {
 
             // Add event listener to the username input to check availability
             const nostrModalNip05 = document.getElementById("nostrModalNip05") as HTMLInputElement;
+            const nostrModalBunker = document.getElementById(
+                "nostrModalBunker"
+            ) as HTMLSelectElement;
+            const nostrModalEmail = document.getElementById("nostrModalEmail") as HTMLInputElement;
             const nostrModalSubmit = document.getElementById(
                 "nostrModalSubmit"
             ) as HTMLButtonElement;
@@ -58,9 +63,31 @@ const NostrIgnition = (() => {
                         }
                     });
             });
+
+            // Add an event listener to the form to create the account
             nostrModalSubmit.addEventListener("click", async function (event) {
-                event.preventDefault(); // Prevent form submission
-                submitModal();
+                event.preventDefault();
+                if (!nostrModalNip05.value || !nostrModalBunker.value) return;
+                // TODO: Add error to UI
+
+                // TODO: add spinner to submit button and disable
+                await nip46.createAccount(
+                    nostrModalNip05.value,
+                    nostrModalBunker.value,
+                    nostrModalEmail.value || undefined
+                );
+            });
+
+            // Add event listener for response events
+            nip46.on("parsedResponseEvent", (response) => {
+                console.log(response);
+                switch (response.result) {
+                    case "auth_url":
+                        openNewWindow(`${response.error}?redirect_uri=${options.redirectUri}`);
+                        break;
+                    default:
+                        break;
+                }
             });
         }
     };
@@ -106,10 +133,6 @@ const NostrIgnition = (() => {
         return dialog;
     };
 
-    const submitModal = async () => {
-        await nip46.ping(); // Ping for now
-    };
-
     // Function to load css file
     const loadCss = (url: string): void => {
         const linkElement: HTMLLinkElement = document.createElement("link");
@@ -122,6 +145,18 @@ const NostrIgnition = (() => {
     // Function to show the modal
     const showModal = (dialog: HTMLDialogElement): void => {
         dialog.showModal();
+    };
+
+    /**
+     * Opens a new window with the specified URL.
+     * @param url - The URL to open in the new window.
+     */
+    const openNewWindow = (url: string): void => {
+        var width = 600; // Desired width of the window
+        var height = 800; // Desired height of the window
+
+        var windowFeatures = `width=${width},height=${height},popup=yes`;
+        window.open(url, "nostrIgnition", windowFeatures);
     };
 
     // Finally, return the init method as the only public method
