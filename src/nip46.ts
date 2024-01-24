@@ -1,12 +1,15 @@
 import { SimplePool } from "nostr-tools/pool";
 import { generateSecretKey, getPublicKey, finalizeEvent, type Event } from "nostr-tools/pure";
 import type { SubCloser, SubscribeManyParams } from "nostr-tools";
+import { npubEncode } from "nostr-tools/nip19";
 import { encrypt, decrypt } from "nostr-tools/nip04";
 import { NostrConnect, Handlerinformation } from "nostr-tools/kinds";
 import { EventEmitter } from "events";
 
-const defaultRelays = ["wss://relay.nostr.band", "wss://relay.nsecbunker.com"];
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const DEFAULT_RELAYS = ["wss://relay.nostr.band", "wss://relay.nsecbunker.com"];
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+export const NPUB_REGEX = /npub1[023456789acdefghjklmnpqrstuvwxyz]{58}/;
+export const PUBKEY_REGEX = /[0-9a-z]{64}/;
 
 type KeyPair = { privateKey: Uint8Array; publicKey: string };
 
@@ -52,7 +55,7 @@ export class Nip46 extends EventEmitter {
         super();
 
         this.pool = new SimplePool();
-        this.relays = relays || defaultRelays;
+        this.relays = relays || DEFAULT_RELAYS;
         this.remotePubkey = remotePubkey;
         this.keys = keys || this.generateAndStoreKey();
         if (!this.subscription) this.subscribeToNostrConnectEvents();
@@ -80,6 +83,15 @@ export class Nip46 extends EventEmitter {
      */
     private generateReqId(): string {
         return Math.random().toString(36).substring(7);
+    }
+
+    /**
+     * Encodes the remote public key into a string representation.
+     *
+     * @returns The encoded remote public key, or undefined if the remote public key is not set.
+     */
+    remoteNpub(): string | undefined {
+        return this.remotePubkey ? npubEncode(this.remotePubkey) : undefined;
     }
 
     /**
@@ -245,7 +257,7 @@ export class Nip46 extends EventEmitter {
      * @throws {Error} If no keys are found or no remote public key is found.
      * @returns A Promise that resolves when the connection is established.
      */
-    async connect(secret?: string) {
+    async connect(secret?: string): Promise<void> {
         if (!this.keys) throw new Error("No keys found");
         if (!this.remotePubkey) throw new Error("No remote public key found");
 
@@ -286,7 +298,7 @@ export class Nip46 extends EventEmitter {
      */
     async createAccount(bunkerPubkey: string, username: string, domain: string, email?: string): Promise<void> {
         if (!this.keys) throw new Error("No keys found");
-        if (email && !emailRegex.test(email)) throw new Error("Invalid email");
+        if (email && !EMAIL_REGEX.test(email)) throw new Error("Invalid email");
 
         const reqId = this.generateReqId();
         const params = [username, domain, email];

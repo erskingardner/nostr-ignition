@@ -1,4 +1,4 @@
-import { Nip46, type BunkerProfile } from "./nip46";
+import { Nip46, PUBKEY_REGEX, type BunkerProfile } from "./nip46";
 
 const NostrIgnition = (() => {
     const css = "./src/index.css";
@@ -59,6 +59,7 @@ const NostrIgnition = (() => {
                         nostrModalSubmit.disabled = false;
                         nostrModalNip05.classList.remove("invalid");
                         nostrModalNip05Error.style.display = "none";
+                        nostrModalBunkerError.style.display = "none";
                     } else {
                         nostrModalSubmit.disabled = true;
                         nostrModalNip05.setCustomValidity("Username is not available");
@@ -102,7 +103,7 @@ const NostrIgnition = (() => {
             });
 
             // Add event listener for response events
-            nip46.on("parsedResponseEvent", (response) => {
+            nip46.on("parsedResponseEvent", async (response) => {
                 console.log(response);
                 switch (response.result) {
                     case "auth_url":
@@ -110,7 +111,29 @@ const NostrIgnition = (() => {
                         // or auth_url if user needs to follow a link. We're only handling redirect url for now.
                         openNewWindow(`${response.error}?redirect_uri=${options.redirectUri}`);
                         break;
+                    case "ack":
+                        // We're assuming for now that this is a connect response
+                        console.log("Account connected!");
+
+                        break;
                     default:
+                        // Handle response from create_account which just replies with a pubkey
+                        if (PUBKEY_REGEX.test(response.result)) {
+                            // Reset form
+                            nostrModalNip05.value = "";
+                            nostrModalNip05.classList.remove("invalid");
+                            nostrModalBunkerError.classList.remove("invalid");
+                            nostrModalNip05Error.style.display = "none";
+                            nostrModalBunkerError.style.display = "none";
+                            nostrModalSubmit.disabled = false;
+                            nostrModalSubmitText.style.display = "block";
+                            nostrModalSubmitSpinner.style.display = "none";
+                            modal.close();
+
+                            // Set the remote pubkey and connect
+                            nip46.remotePubkey = response.result;
+                            await nip46.connect();
+                        }
                         break;
                 }
             });
@@ -185,8 +208,13 @@ const NostrIgnition = (() => {
         window.open(url, "nostrIgnition", windowFeatures);
     };
 
+    const remoteNpub = (): string | undefined => {
+        return nip46.remoteNpub();
+    };
+
     // Finally, return the init method as the only public method
     return {
         init,
+        remoteNpub,
     };
 })();

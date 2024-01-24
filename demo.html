@@ -9,6 +9,25 @@
             body {
                 font-family: "Inter", sans-serif;
             }
+
+            #connectionSuccess {
+                margin: 4rem auto;
+                width: 100%;
+                display: none;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+            }
+
+            #npubMessage {
+                margin-top: 1rem;
+                text-align: center;
+            }
+
+            #newNostrNpub {
+                margin-top: 0.5rem;
+                font-weight: 600;
+            }
         </style>
         <title>Ignition - Development</title>
     </head>
@@ -18,12 +37,30 @@
             Call window.nostr (which is what NIP-07 log-in buttons do)
         </button>
 
+        <div id="connectionSuccess">
+            <h2>🎊 Connected successfully! 🎊</h2>
+            <img src="https://i.nostr.build/a4OQ.gif" alt="thumbs-up" />
+            <div id="npubMessage">
+                The npub of your new account is:
+                <div id="newNostrNpub"></div>
+            </div>
+        </div>
+
         <!-- Include the built JS file -->
         <script src="./dist/index.js"></script>
         <script>
             document.addEventListener("DOMContentLoaded", function () {
                 NostrIgnition.init({ appName: "DemoApp", redirectUri: "http://localhost:3000" });
             });
+
+            const checkForRemoteKey = setInterval(() => {
+                const remoteNpub = NostrIgnition.remoteNpub();
+                if (remoteNpub) {
+                    document.getElementById("newNostrNpub").innerText = remoteNpub;
+                    document.getElementById("connectionSuccess").style.display = "flex";
+                    clearInterval(checkForRemoteKey);
+                }
+            }, 1000);
         </script>
     </body>
 </html>
