@@ -10,15 +10,15 @@ const NostrIgnition = (() => {
     };
 
     let options: NostrIgnitionOptions;
-    let nip46: Nip46 = new Nip46();
-
+    let nip46: Nip46;
     let availableBunkers: BunkerProfile[] = [];
 
     const init = async (ignitionOptions: NostrIgnitionOptions) => {
-        console.log("Initializing Nostr Ignition...");
         // Only do something if the window.nostr object doesn't exist
         // e.g. we don't have a NIP-07 extension
         if (!(window as any).nostr) {
+            console.log("Initializing Nostr Ignition...");
+            nip46 = new Nip46(); // instantiate the NIP-46 class
             options = ignitionOptions; // Set the options
             loadCss(css); // Load the css file
 
