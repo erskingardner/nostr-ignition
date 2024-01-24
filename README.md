@@ -11,7 +11,7 @@ A standalone, drop-in library to help new users to Nostr create accounts with an
 First, add the JS file from CDN in your Layout file or HTML. You want to make sure that this is loaded on all pages of your app where users can't log in.
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/nostr-ignition@0.0.2/dist/index.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/nostr-ignition@latest/dist/index.js"></script>
 ```
 
 Then, initialize the library once the DOM is ready to go.
