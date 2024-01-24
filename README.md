@@ -4,11 +4,10 @@ A standalone, drop-in library to help new users to Nostr create accounts with an
 
 ### To use:
 
-First, add the JS file from CDN.
+First, add the JS file from CDN in your Layout file or HTML. You want to make sure that this is loaded on all pages of your app where users can't log in.
 
 ```html
-<!-- TODO: UPDATE URL -->
-<script src="./dist/index.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/nostr-ignition@0.0.2/dist/index.js"></script>
 ```
 
 Then, initialize the library once the DOM is ready to go.
@@ -27,8 +26,6 @@ Then, initialize the library once the DOM is ready to go.
 
 The `init` method takes an options argument. Options are an object that looks like the following.
 
-`appName` is required, both `redirectUri` and `relays` are optional.
-
 ```js
 options = {
     appName: `<The name of your app>`,
@@ -36,6 +33,8 @@ options = {
     relays: `<An array of relay urls>`,
 };
 ```
+
+`appName` is required, both `redirectUri` and `relays` are optional.
 
 ## Contributing
 
@@ -53,4 +52,18 @@ bun run dev
 
 This will open the `demo.html` file and build the project in watch mode. You can use the demo page to view your changes as you work.
 
-This project was created using `bun init` in bun v1.0.18. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
+### To check formatting & linting:
+
+```bash
+bun run lint
+```
+
+This will check both prettier formatting and use `eslint` to check the code.
+
+### To run tests:
+
+```bash
+bun run test
+```
+
+Please run both these commands before creating a PR.
