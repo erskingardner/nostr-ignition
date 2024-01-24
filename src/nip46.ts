@@ -45,8 +45,7 @@ export class Nip46 extends EventEmitter {
     /**
      * Creates a new instance of the Nip46 class.
      * @param relays - An optional array of relay addresses.
-     * @param remotePubkey - An optional remote public key.
-     *                       This is the pubkey of the bunker you want to connect to for create_account calls.
+     * @param remotePubkey - An optional remote public key. This is the key you want to sign as.
      * @param keys - An optional key pair.
      */
     public constructor(relays?: string[], remotePubkey?: string, keys?: KeyPair) {
