@@ -84,7 +84,8 @@ dialog#nostrModal > div > form#nostrModalForm input[type="email"] {
 }
 
 dialog#nostrModal > div > form#nostrModalForm input[type="text"].invalid,
-dialog#nostrModal > div > form#nostrModalForm input[type="email"].invalid {
+dialog#nostrModal > div > form#nostrModalForm input[type="email"].invalid,
+dialog#nostrModal > div > form#nostrModalForm select.invalid {
     border: 1px red solid;
 }
 
@@ -100,7 +101,8 @@ dialog#nostrModal > div > form#nostrModalForm label {
     font-size: 0.875rem;
 }
 
-dialog#nostrModal > div #nostrModalNip05Error {
+dialog#nostrModal > div #nostrModalNip05Error,
+dialog#nostrModal > div #nostrModalBunkerError {
     color: red;
     display: none;
     align-self: flex-start;
@@ -118,6 +120,10 @@ dialog#nostrModal > div > form#nostrModalForm button[type="submit"] {
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
+    display: flex;
+    flex-direction: row;
+    items-align: center;
+    justify-content: center;
 }
 
 dialog#nostrModal > div > form#nostrModalForm button[type="submit"]:hover {
@@ -135,4 +141,27 @@ dialog#nostrModal > div > #nostrModalLearnMore {
     text-align: center;
     font-size: 0.75rem;
     color: #555;
+}
+
+/* Loading spinner */
+dialog#nostrModal #nostrModalSubmitSpinner {
+    display: none;
+}
+dialog#nostrModal #nostrModalSubmitSpinner:after {
+    content: " ";
+    display: block;
+    width: 0.8rem;
+    height: 0.8rem;
+    border-radius: 50%;
+    border: 0.2rem solid #fff;
+    border-color: #fff transparent #fff transparent;
+    animation: lds-dual-ring 1.2s linear infinite;
+}
+@keyframes lds-dual-ring {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
 }

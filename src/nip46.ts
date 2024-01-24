@@ -4,9 +4,7 @@ import type { SubCloser, SubscribeManyParams } from "nostr-tools";
 import { encrypt, decrypt } from "nostr-tools/nip04";
 import { NostrConnect, Handlerinformation } from "nostr-tools/kinds";
 import { EventEmitter } from "events";
-import { parse } from "nostr-tools/nip10";
 
-const nostrMePubkey = "9c1636cda4be9bce36fe06f99f71c21525b109e0f6f206eb7a5f72093ec89f02";
 const defaultRelays = ["wss://relay.nostr.band", "wss://relay.nsecbunker.com"];
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -27,7 +25,7 @@ type nip46Response = {
     event: Event;
 };
 
-type BunkerProfile = {
+export type BunkerProfile = {
     pubkey: string;
     domain: string;
     nip05: string;
@@ -44,18 +42,25 @@ export class Nip46 extends EventEmitter {
     public keys: KeyPair | undefined;
     public remotePubkey: string | undefined;
 
+    /**
+     * Creates a new instance of the Nip46 class.
+     * @param relays - An optional array of relay addresses.
+     * @param remotePubkey - An optional remote public key.
+     *                       This is the pubkey of the bunker you want to connect to for create_account calls.
+     * @param keys - An optional key pair.
+     */
     public constructor(relays?: string[], remotePubkey?: string, keys?: KeyPair) {
         super();
 
         this.pool = new SimplePool();
         this.relays = relays || defaultRelays;
-        this.remotePubkey = remotePubkey || nostrMePubkey;
+        this.remotePubkey = remotePubkey;
         this.keys = keys || this.generateAndStoreKey();
         if (!this.subscription) this.subscribeToNostrConnectEvents();
     }
 
     /**
-     * Generates a secret key, retrieves the corresponding public key, and stores it in the local storage.
+     * Generates a key pair, stores the pubkey in localStorage.
      *
      * @private
      * @returns {void}
@@ -82,7 +87,7 @@ export class Nip46 extends EventEmitter {
      * Subscribes to Nostr Connect events (kind 24133 and 24134) for the provided keys and relays.
      *
      * This method subscribes to NostrConnect events using the provided keys and relays.
-     * It sets up a subscription to receive events and logs the received response.
+     * It sets up a subscription to receive events and emit events for the received responses.
      *
      * @private
      * @returns {void}
@@ -90,9 +95,10 @@ export class Nip46 extends EventEmitter {
     private subscribeToNostrConnectEvents(): void {
         // Bail early if we don't have a local keypair
         if (!this.keys) return;
-        const keys = this.keys;
+
         const nip46 = this;
         const parseResponseEvent = this.parseResponseEvent.bind(this);
+
         const subManyParams: SubscribeManyParams = {
             async onevent(event) {
                 const res = await parseResponseEvent(event);
@@ -102,6 +108,7 @@ export class Nip46 extends EventEmitter {
                 console.log("EOSE received");
             },
         };
+
         this.subscription = this.pool.subscribeMany(
             this.relays,
             [{ kinds: [NostrConnect, 24134], "#p": [this.keys.publicKey] }],
@@ -110,9 +117,9 @@ export class Nip46 extends EventEmitter {
     }
 
     /**
-     * Fetches info on available signers (nsecbunkers).
+     * Fetches info on available signers (nsecbunkers) using NIP-89 events.
      *
-     * @returns A promise that resolves to an array of events showing the available bunkers.
+     * @returns A promise that resolves to an array of available bunker objects.
      */
     async fetchBunkers(): Promise<BunkerProfile[]> {
         const events = await this.pool.querySync(this.relays, { kinds: [Handlerinformation] });
@@ -149,8 +156,8 @@ export class Nip46 extends EventEmitter {
      * Checks the availability of a NIP05 address on a given domain.
      *
      * @param nip05 - The NIP05 address to check.
-     * @returns A promise that resolves to a boolean indicating the availability of the NIP05 address.
      * @throws {Error} If the NIP05 address is invalid. e.g. not in the form `name@domain`.
+     * @returns A promise that resolves to a boolean indicating the availability of the NIP05 address.
      */
     async checkNip05Availability(nip05: string): Promise<boolean> {
         if (nip05.split("@").length !== 2) throw new Error("Invalid nip05");
@@ -166,7 +173,8 @@ export class Nip46 extends EventEmitter {
      *
      * @param nip05 - The NIP05 to validate.
      * @param pubkey - The public key to compare against.
-     * @returns A promise that resolves to a boolean indicating whether the NIP05 is valid.
+     * @returns A promise that resolves to a boolean indicating whether the NIP05 is valid for the bunkers pubkey.
+     * Will also return false for invalid nip05 format.
      */
     async validateBunkerNip05(nip05: string, pubkey: string): Promise<boolean> {
         if (nip05.split("@").length !== 2) return false;
@@ -180,9 +188,8 @@ export class Nip46 extends EventEmitter {
     /**
      * Parses a response event and decrypts its content using the recipient's private key.
      *
-     * @throws {Error} If no keys are found.
      * @param event - The response event to parse.
-     * @param recipientPrivateKey - The private key of the recipient used for decryption.
+     * @throws {Error} If no keys are found.
      * @returns An object containing the parsed response event data.
      */
     async parseResponseEvent(event: Event): Promise<nip46Response | nip46Request> {
@@ -235,8 +242,8 @@ export class Nip46 extends EventEmitter {
      * Connects to a remote server using the provided keys and remote public key.
      * Optionally, a secret can be provided for additional authentication.
      *
-     * @throws {Error} If no keys are found or no remote public key is found.
      * @param secret - Optional secret for additional authentication.
+     * @throws {Error} If no keys are found or no remote public key is found.
      * @returns A Promise that resolves when the connection is established.
      */
     async connect(secret?: string) {
@@ -269,9 +276,17 @@ export class Nip46 extends EventEmitter {
         await Promise.any(this.pool.publish(this.relays, verifiedEvent));
     }
 
-    async createAccount(username: string, domain: string, email?: string): Promise<void> {
+    /**
+     * Creates an account with the specified username, domain, and optional email.
+     * @param bunkerPubkey - The public key of the bunker to use for the create_account call.
+     * @param username - The username for the account.
+     * @param domain - The domain for the account.
+     * @param email - The optional email for the account.
+     * @throws Error if no keys are found, no remote public key is found, or the email is present but invalid.
+     * @returns A Promise that resolves when the event is published.
+     */
+    async createAccount(bunkerPubkey: string, username: string, domain: string, email?: string): Promise<void> {
         if (!this.keys) throw new Error("No keys found");
-        if (!this.remotePubkey) throw new Error("No remote public key found");
         if (email && !emailRegex.test(email)) throw new Error("Invalid email");
 
         const reqId = this.generateReqId();
@@ -280,7 +295,7 @@ export class Nip46 extends EventEmitter {
         // Encrypt the content for the bunker
         const encryptedContent = await encrypt(
             this.keys.privateKey,
-            this.remotePubkey,
+            bunkerPubkey,
             JSON.stringify({ id: reqId, method: "create_account", params: params })
         );
 
@@ -288,7 +303,7 @@ export class Nip46 extends EventEmitter {
         const verifiedEvent = finalizeEvent(
             {
                 kind: 24134,
-                tags: [["p", this.remotePubkey]],
+                tags: [["p", bunkerPubkey]],
                 content: encryptedContent,
                 created_at: Math.floor(Date.now() / 1000),
             },
@@ -300,7 +315,7 @@ export class Nip46 extends EventEmitter {
     }
 
     /**
-     * Disposes of any resources held by the object.
+     * Disposes of any resources held by the object. Should be called when finished with the object.
      */
     dispose(): void {
         this.subscription?.close();

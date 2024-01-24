@@ -1,4 +1,4 @@
-import { Nip46 } from "./nip46";
+import { Nip46, type BunkerProfile } from "./nip46";
 
 const NostrIgnition = (() => {
     const css = "./src/index.css";
@@ -12,6 +12,8 @@ const NostrIgnition = (() => {
     let options: NostrIgnitionOptions;
     let nip46: Nip46 = new Nip46();
 
+    let availableBunkers: BunkerProfile[] = [];
+
     const init = async (ignitionOptions: NostrIgnitionOptions) => {
         console.log("Initializing Nostr Ignition...");
         // Only do something if the window.nostr object doesn't exist
@@ -19,6 +21,11 @@ const NostrIgnition = (() => {
         if (!(window as any).nostr) {
             options = ignitionOptions; // Set the options
             loadCss(css); // Load the css file
+
+            // Check for available bunkers have to do this before modal is created
+            availableBunkers = await nip46.fetchBunkers();
+
+            // Build the modal
             const modal = await createModal(); // Create the modal element
 
             // Create the window.nostr object and anytime it's called, show the modal
@@ -28,50 +35,66 @@ const NostrIgnition = (() => {
                 },
             });
 
-            // Add event listener to close the modal
+            // Get the modal elements
+            const nostrModalNip05 = document.getElementById("nostrModalNip05") as HTMLInputElement;
+            const nostrModalBunker = document.getElementById("nostrModalBunker") as HTMLSelectElement;
+            const nostrModalEmail = document.getElementById("nostrModalEmail") as HTMLInputElement;
+            const nostrModalSubmit = document.getElementById("nostrModalSubmit") as HTMLButtonElement;
+            const nostrModalSubmitText = document.getElementById("nostrModalSubmitText") as HTMLSpanElement;
+            const nostrModalSubmitSpinner = document.getElementById("nostrModalSubmitSpinner") as HTMLSpanElement;
+            const nostrModalNip05Error = document.getElementById("nostrModalNip05Error") as HTMLSpanElement;
+            const nostrModalBunkerError = document.getElementById("nostrModalBunkerError") as HTMLSpanElement;
             const nostrModalClose = document.getElementById("nostrModalClose") as HTMLButtonElement;
+
+            // Add event listener to close the modal
             nostrModalClose.addEventListener("click", function () {
                 modal.close();
             });
 
             // Add event listener to the username input to check availability
-            const nostrModalNip05 = document.getElementById("nostrModalNip05") as HTMLInputElement;
-            const nostrModalBunker = document.getElementById(
-                "nostrModalBunker"
-            ) as HTMLSelectElement;
-            const nostrModalEmail = document.getElementById("nostrModalEmail") as HTMLInputElement;
-            const nostrModalSubmit = document.getElementById(
-                "nostrModalSubmit"
-            ) as HTMLButtonElement;
-            const nostrModalNip05Error = document.getElementById(
-                "nostrModalNip05Error"
-            ) as HTMLSpanElement;
             nostrModalNip05.addEventListener("input", function () {
-                nip46
-                    .checkNip05Availability(`${nostrModalNip05.value}@nostr.me`)
-                    .then((available) => {
-                        if (available) {
-                            nostrModalNip05.setCustomValidity("");
-                            nostrModalSubmit.disabled = false;
-                            nostrModalNip05.classList.remove("invalid");
-                            nostrModalNip05Error.style.display = "none";
-                        } else {
-                            nostrModalSubmit.disabled = true;
-                            nostrModalNip05.setCustomValidity("Username is not available");
-                            nostrModalNip05.classList.add("invalid");
-                            nostrModalNip05Error.style.display = "block";
-                        }
-                    });
+                nip46.checkNip05Availability(`${nostrModalNip05.value}@nostr.me`).then((available) => {
+                    if (available) {
+                        nostrModalNip05.setCustomValidity("");
+                        nostrModalSubmit.disabled = false;
+                        nostrModalNip05.classList.remove("invalid");
+                        nostrModalNip05Error.style.display = "none";
+                    } else {
+                        nostrModalSubmit.disabled = true;
+                        nostrModalNip05.setCustomValidity("Username is not available");
+                        nostrModalNip05.classList.add("invalid");
+                        nostrModalNip05Error.style.display = "block";
+                    }
+                });
             });
 
             // Add an event listener to the form to create the account
             nostrModalSubmit.addEventListener("click", async function (event) {
                 event.preventDefault();
-                if (!nostrModalNip05.value || !nostrModalBunker.value) return;
-                // TODO: Add error to UI
 
-                // TODO: add spinner to submit button and disable
+                nostrModalSubmit.disabled = true;
+                nostrModalSubmitText.style.display = "none";
+                nostrModalSubmitSpinner.style.display = "block";
+
+                const bunkerPubkey = availableBunkers.find(
+                    (bunker) => bunker.domain === nostrModalBunker.value
+                )?.pubkey;
+
+                // Add error if we don't have valid details
+                if (!nostrModalBunker.value || !bunkerPubkey) {
+                    nostrModalSubmit.disabled = true;
+                    nostrModalBunker.setCustomValidity("Error creating account. Please try again later.");
+                    nostrModalBunker.classList.add("invalid");
+                    nostrModalBunkerError.style.display = "block";
+                    // Remove spinner and re-enable submit button
+                    nostrModalSubmit.disabled = false;
+                    nostrModalSubmitText.style.display = "block";
+                    nostrModalSubmitSpinner.style.display = "none";
+                    return;
+                }
+
                 await nip46.createAccount(
+                    bunkerPubkey,
                     nostrModalNip05.value,
                     nostrModalBunker.value,
                     nostrModalEmail.value || undefined
@@ -83,6 +106,8 @@ const NostrIgnition = (() => {
                 console.log(response);
                 switch (response.result) {
                     case "auth_url":
+                        // TODO: Handle different responses. Can either be pubkey if user already has an account
+                        // or auth_url if user needs to follow a link. We're only handling redirect url for now.
                         openNewWindow(`${response.error}?redirect_uri=${options.redirectUri}`);
                         break;
                     default:
@@ -98,10 +123,7 @@ const NostrIgnition = (() => {
         const dialog: HTMLDialogElement = document.createElement("dialog");
         dialog.id = "nostrModal";
 
-        // Check for available bunkers
-        const bunkers = await nip46.fetchBunkers();
-
-        const optionsForBunkers = bunkers.map((bunker) => {
+        const optionsForBunkers = availableBunkers.map((bunker) => {
             return `<option value="${bunker.domain}">${bunker.domain}</option>`;
         });
 
@@ -119,10 +141,14 @@ const NostrIgnition = (() => {
                     </select>
                 </span>
                 <span id="nostrModalNip05Error">Username not available</span>
+                <span id="nostrModalBunkerError">Error creating account</span>
                 <span class="inputWrapperFull">
                     <input type="email" id="nostrModalEmail" name="nostrModalEmail" placeholder="Email address. Optional, for account recovery." />
                 </span>
-                <button type="submit" id="nostrModalSubmit" disabled>Create account</button>
+                <button type="submit" id="nostrModalSubmit" disabled>
+                    <span id="nostrModalSubmitText">Create account</span>
+                    <span id="nostrModalSubmitSpinner"></span>
+                </button>
             </form>
             <div id="nostrModalLearnMore">Not sure what Nostr is? Check out <a href="https://nostr.how" target="_blank">Nostr.how</a> for more info</div>
         `;

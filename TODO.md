@@ -14,6 +14,9 @@ A simple drop-in library to allow apps to implement NIP-46 remote signing in an 
 
 ## 🚢 DONE
 
+-   Loading spinner on Submit
+-   Error messages for validating the bunker
+-   Error messages for username
 -   Validate Bunker NIP-05 and give options to select bunkers
 -   Basic JS widget with simple options - JG
 -   Modal and basic styling of modal - JG
