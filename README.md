@@ -16,16 +16,24 @@ Then, initialize the library once the DOM is ready to go.
 ```html
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        NostrIgnition.init({ appName: "DemoApp" });
+        NostrIgnition.init({
+            appName: "DemoApp",
+            redirectUri: "https://myapp.com",
+            relays: ["wss://relay1.com", "wss://relay2.com"],
+        });
     });
 </script>
 ```
 
 The `init` method takes an options argument. Options are an object that looks like the following.
 
+`appName` is required, both `redirectUri` and `relays` are optional.
+
 ```js
 options = {
-    appName: "<The name of your app>",
+    appName: `<The name of your app>`,
+    redirectUri: `<Where you want to redirect to after account creation>`,
+    relays: `<An array of relay urls>`,
 };
 ```
 

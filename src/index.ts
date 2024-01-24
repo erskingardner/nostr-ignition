@@ -1,5 +1,6 @@
 import { Nip46, PUBKEY_REGEX, type BunkerProfile } from "./nip46";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const NostrIgnition = (() => {
     const css = "./src/index.css";
 
@@ -16,6 +17,7 @@ const NostrIgnition = (() => {
     const init = async (ignitionOptions: NostrIgnitionOptions) => {
         // Only do something if the window.nostr object doesn't exist
         // e.g. we don't have a NIP-07 extension
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if (!(window as any).nostr) {
             console.log("Initializing Nostr Ignition...");
             nip46 = new Nip46(); // instantiate the NIP-46 class
@@ -201,10 +203,10 @@ const NostrIgnition = (() => {
      * @param url - The URL to open in the new window.
      */
     const openNewWindow = (url: string): void => {
-        var width = 600; // Desired width of the window
-        var height = 800; // Desired height of the window
+        const width = 600; // Desired width of the window
+        const height = 800; // Desired height of the window
 
-        var windowFeatures = `width=${width},height=${height},popup=yes`;
+        const windowFeatures = `width=${width},height=${height},popup=yes`;
         window.open(url, "nostrIgnition", windowFeatures);
     };
 

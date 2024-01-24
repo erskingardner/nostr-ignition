@@ -107,6 +107,8 @@ export class Nip46 extends EventEmitter {
         // Bail early if we don't have a local keypair
         if (!this.keys) return;
 
+        // We do this alias because inside the onevent function, `this` is the event object
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
         const nip46 = this;
         const parseResponseEvent = this.parseResponseEvent.bind(this);
 
@@ -173,7 +175,7 @@ export class Nip46 extends EventEmitter {
     async checkNip05Availability(nip05: string): Promise<boolean> {
         if (nip05.split("@").length !== 2) throw new Error("Invalid nip05");
 
-        let [username, domain] = nip05.split("@");
+        const [username, domain] = nip05.split("@");
         const response = await fetch(`https://${domain}/.well-known/nostr.json?name=${username}`);
         const json = await response.json();
         return json.names[username] === undefined ? true : false;
@@ -190,7 +192,7 @@ export class Nip46 extends EventEmitter {
     async validateBunkerNip05(nip05: string, pubkey: string): Promise<boolean> {
         if (nip05.split("@").length !== 2) return false;
 
-        let [_username, domain] = nip05.split("@");
+        const domain = nip05.split("@")[1];
         const response = await fetch(`https://${domain}/.well-known/nostr.json?name=_`);
         const json = await response.json();
         return json.names["_"] === pubkey;

@@ -5,6 +5,7 @@ A simple drop-in library to allow apps to implement NIP-46 remote signing in an 
 ## 🎯 TODO
 
 -   Implement signing in with NIP-05 or BYON (bring your own npub)
+-   Write tests
 
 ## 👨‍💻 IN PROGRESS
 
