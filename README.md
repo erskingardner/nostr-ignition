@@ -2,7 +2,11 @@
 
 A standalone, drop-in library to help new users to Nostr create accounts with an OAuth-like flow using Nsecbunker.
 
-### To use:
+## Demo
+
+[![Watch the demo](https://i.nostr.build/OGO0.png)](https://v.nostr.build/8AQg.mp4)
+
+## Get started
 
 First, add the JS file from CDN in your Layout file or HTML. You want to make sure that this is loaded on all pages of your app where users can't log in.
 
