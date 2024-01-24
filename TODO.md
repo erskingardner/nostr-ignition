@@ -5,15 +5,14 @@ A simple drop-in library to allow apps to implement NIP-46 remote signing in an 
 ## 🎯 TODO
 
 -   Implement signing in with NIP-05 or BYON (bring your own npub)
--
 
 ## 👨‍💻 IN PROGRESS
 
--   Implement new account creation - JG
-    -   Popup doesn't redirect
+-   Popup doesn't redirect
 
 ## 🚢 DONE
 
+-   Implement new account creation - JG
 -   Loading spinner on Submit
 -   Error messages for validating the bunker
 -   Error messages for username
