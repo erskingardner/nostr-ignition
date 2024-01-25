@@ -25,23 +25,40 @@ const init = async (ignitionOptions: NostrIgnitionOptions) => {
         // Build the modal
         const modal = await createModal(); // Create the modal element
 
+        // Get the modal elements
+        const nostrModalNip05 = document.getElementById("nostr_ignition__nostrModalNip05") as HTMLInputElement;
+        const nostrModalBunker = document.getElementById("nostr_ignition__nostrModalBunker") as HTMLSelectElement;
+        const nostrModalEmail = document.getElementById("nostr_ignition__nostrModalEmail") as HTMLInputElement;
+        const nostrModalSubmit = document.getElementById("nostr_ignition__nostrModalSubmit") as HTMLButtonElement;
+        const nostrModalSubmitText = document.getElementById("nostr_ignition__nostrModalSubmitText") as HTMLSpanElement;
+        const nostrModalSubmitSpinner = document.getElementById(
+            "nostr_ignition__nostrModalSubmitSpinner"
+        ) as HTMLSpanElement;
+        const nostrModalNip05Error = document.getElementById("nostr_ignition__nostrModalNip05Error") as HTMLSpanElement;
+        const nostrModalBunkerError = document.getElementById(
+            "nostr_ignition__nostrModalBunkerError"
+        ) as HTMLSpanElement;
+        const nostrModalClose = document.getElementById("nostr_ignition__nostrModalClose") as HTMLButtonElement;
+
+        // Update the app name safely (escaping content provided by user)
+        const appName = document.getElementById("nostr_ignition__appName") as HTMLSpanElement;
+        appName.innerText = options.appName;
+
+        // Add the available bunkers to the select element safely
+        // (escaping content provided by user generated events)
+        availableBunkers.forEach((bunker) => {
+            const option = document.createElement("option");
+            option.setAttribute("value", bunker.domain);
+            option.innerText = bunker.domain;
+            nostrModalBunker.appendChild(option);
+        });
+
         // Create the window.nostr object and anytime it's called, show the modal
         Object.defineProperty(window, "nostr", {
             get: function () {
                 showModal(modal);
             },
         });
-
-        // Get the modal elements
-        const nostrModalNip05 = document.getElementById("nostrModalNip05") as HTMLInputElement;
-        const nostrModalBunker = document.getElementById("nostrModalBunker") as HTMLSelectElement;
-        const nostrModalEmail = document.getElementById("nostrModalEmail") as HTMLInputElement;
-        const nostrModalSubmit = document.getElementById("nostrModalSubmit") as HTMLButtonElement;
-        const nostrModalSubmitText = document.getElementById("nostrModalSubmitText") as HTMLSpanElement;
-        const nostrModalSubmitSpinner = document.getElementById("nostrModalSubmitSpinner") as HTMLSpanElement;
-        const nostrModalNip05Error = document.getElementById("nostrModalNip05Error") as HTMLSpanElement;
-        const nostrModalBunkerError = document.getElementById("nostrModalBunkerError") as HTMLSpanElement;
-        const nostrModalClose = document.getElementById("nostrModalClose") as HTMLButtonElement;
 
         // Add event listener to close the modal
         nostrModalClose.addEventListener("click", function () {
@@ -139,36 +156,31 @@ const init = async (ignitionOptions: NostrIgnitionOptions) => {
 const createModal = async (): Promise<HTMLDialogElement> => {
     // Create the dialog element
     const dialog: HTMLDialogElement = document.createElement("dialog");
-    dialog.id = "nostrModal";
-
-    const optionsForBunkers = availableBunkers.map((bunker) => {
-        return `<option value="${bunker.domain}">${bunker.domain}</option>`;
-    });
+    dialog.id = "nostr_ignition__nostrModal";
 
     // Add content to the dialog
     const dialogContent: HTMLDivElement = document.createElement("div");
     dialogContent.innerHTML = `
-        <button id="nostrModalClose"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x-square"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg></button>
-        <h2 id="nostrModalTitle">${options.appName} uses Nostr for accounts</h2>
+        <button id="nostr_ignition__nostrModalClose"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x-square"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg></button>
+        <h2 id="nostr_ignition__nostrModalTitle"><span id="nostr_ignition__appName">This app</span> uses Nostr for accounts</h2>
         <p>Would you like to create a new Nostr account? Identities on Nostr are portable so you'll be able to use this account on any other Nostr client.</p>
-        <form id="nostrModalForm">
-            <span class="inputWrapper">
-                <input type="text" id="nostrModalNip05" name="nostrModalNip05" placeholder="Username" required />
-                <select id="nostrModalBunker" name="nostrModalBunker" required>
-                ${optionsForBunkers}
+        <form id="nostr_ignition__nostrModalForm">
+            <span class="nostr_ignition__inputWrapper">
+                <input type="text" id="nostr_ignition__nostrModalNip05" name="nostrModalNip05" placeholder="Username" required />
+                <select id="nostr_ignition__nostrModalBunker" name="nostrModalBunker" required>
                 </select>
             </span>
-            <span id="nostrModalNip05Error">Username not available</span>
-            <span id="nostrModalBunkerError">Error creating account</span>
-            <span class="inputWrapperFull">
-                <input type="email" id="nostrModalEmail" name="nostrModalEmail" placeholder="Email address. Optional, for account recovery." />
+            <span id="nostr_ignition__nostrModalNip05Error">Username not available</span>
+            <span id="nostr_ignition__nostrModalBunkerError">Error creating account</span>
+            <span class="nostr_ignition__inputWrapperFull">
+                <input type="email" id="nostr_ignition__nostrModalEmail" name="nostrModalEmail" placeholder="Email address. Optional, for account recovery." />
             </span>
-            <button type="submit" id="nostrModalSubmit" disabled>
-                <span id="nostrModalSubmitText">Create account</span>
-                <span id="nostrModalSubmitSpinner"></span>
+            <button type="submit" id="nostr_ignition__nostrModalSubmit" disabled>
+                <span id="nostr_ignition__nostrModalSubmitText">Create account</span>
+                <span id="nostr_ignition__nostrModalSubmitSpinner"></span>
             </button>
         </form>
-        <div id="nostrModalLearnMore">Not sure what Nostr is? Check out <a href="https://nostr.how" target="_blank">Nostr.how</a> for more info</div>
+        <div id="nostr_ignition__nostrModalLearnMore">Not sure what Nostr is? Check out <a href="https://nostr.how" target="_blank">Nostr.how</a> for more info</div>
     `;
     dialog.appendChild(dialogContent);
 

@@ -40,6 +40,12 @@ options = {
 
 `appName` is required, both `redirectUri` and `relays` are optional.
 
+If you want to include the default CSS, include it in your HTML as well. Otherwise, you'll need to style the modal yourself.
+
+```html
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nostr-ignition@latest/dist/index.css" />
+```
+
 ## Contributing
 
 ### To install dependencies:

@@ -1,4 +1,4 @@
-dialog#nostrModal {
+#nostr_ignition__nostrModal {
     @media (max-width: 767px) {
         width: 100%;
     }
@@ -18,16 +18,16 @@ dialog#nostrModal {
     boxshadow: 0 1rem 2rem rgba(0, 0, 0, 0.3);
 }
 
-dialog#nostrModal::backdrop {
+#nostr_ignition__nostrModal::backdrop {
     background: rgba(0, 0, 0, 0.5);
 }
 
-dialog#nostrModal > div {
+#nostr_ignition__nostrModal > div {
     padding: 0.875rem;
     position: relative;
 }
 
-dialog#nostrModal > div > button#nostrModalClose {
+#nostr_ignition__nostrModalClose {
     position: absolute;
     top: 0rem;
     right: 0rem;
@@ -37,28 +37,28 @@ dialog#nostrModal > div > button#nostrModalClose {
     background: transparent;
 }
 
-dialog#nostrModal > div > button#nostrModalClose svg {
+#nostr_ignition__nostrModalClose svg {
     stroke: #444;
 }
-dialog#nostrModal > div > button#nostrModalClose:hover svg {
+#nostr_ignition__nostrModalClose:hover svg {
     color: #000;
     fill: #eee;
     stroke: #000;
 }
 
-dialog#nostrModal > div > h2#nostrModalTitle {
+#nostr_ignition__nostrModalTitle {
     margin: 1rem 0 0 0;
     text-align: center;
 }
 
-dialog#nostrModal > div > form#nostrModalForm {
+#nostr_ignition__nostrModalForm {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 0.5rem;
 }
 
-dialog#nostrModal > div > form#nostrModalForm .inputWrapper {
+.nostr_ignition__inputWrapper {
     width: 100%;
     display: flex;
     flex-direction: row;
@@ -66,7 +66,7 @@ dialog#nostrModal > div > form#nostrModalForm .inputWrapper {
     gap: 0.5rem;
 }
 
-dialog#nostrModal > div > form#nostrModalForm .inputWrapperFull {
+.nostr_ignition__inputWrapperFull {
     width: 100%;
     display: flex;
     flex-direction: column;
@@ -74,8 +74,8 @@ dialog#nostrModal > div > form#nostrModalForm .inputWrapperFull {
     gap: 0.5rem;
 }
 
-dialog#nostrModal > div > form#nostrModalForm input[type="text"],
-dialog#nostrModal > div > form#nostrModalForm input[type="email"] {
+#nostr_ignition__nostrModalForm input[type="text"],
+#nostr_ignition__nostrModalForm input[type="email"] {
     padding: 0.5rem;
     border: 1px rgba(0, 0, 0, 0.6) solid;
     border-radius: 5px;
@@ -83,13 +83,13 @@ dialog#nostrModal > div > form#nostrModalForm input[type="email"] {
     outline: none;
 }
 
-dialog#nostrModal > div > form#nostrModalForm input[type="text"].invalid,
-dialog#nostrModal > div > form#nostrModalForm input[type="email"].invalid,
-dialog#nostrModal > div > form#nostrModalForm select.invalid {
+#nostr_ignition__nostrModalForm input[type="text"].invalid,
+#nostr_ignition__nostrModalForm input[type="email"].invalid,
+#nostr_ignition__nostrModalForm select.invalid {
     border: 1px red solid;
 }
 
-dialog#nostrModal > div > form#nostrModalForm select {
+#nostr_ignition__nostrModalForm select {
     padding: 0.5rem;
     border: 1px rgba(0, 0, 0, 0.6) solid;
     border-radius: 5px;
@@ -97,12 +97,12 @@ dialog#nostrModal > div > form#nostrModalForm select {
     outline: none;
 }
 
-dialog#nostrModal > div > form#nostrModalForm label {
+#nostr_ignition__nostrModalForm label {
     font-size: 0.875rem;
 }
 
-dialog#nostrModal > div #nostrModalNip05Error,
-dialog#nostrModal > div #nostrModalBunkerError {
+#nostr_ignition__nostrModalNip05Error,
+#nostr_ignition__nostrModalBunkerError {
     color: red;
     display: none;
     align-self: flex-start;
@@ -110,7 +110,7 @@ dialog#nostrModal > div #nostrModalBunkerError {
     margin-bottom: 0.5rem;
 }
 
-dialog#nostrModal > div > form#nostrModalForm button[type="submit"] {
+#nostr_ignition__nostrModalForm button[type="submit"] {
     width: 100%;
     padding: 0.5rem;
     border: none;
@@ -126,17 +126,17 @@ dialog#nostrModal > div > form#nostrModalForm button[type="submit"] {
     justify-content: center;
 }
 
-dialog#nostrModal > div > form#nostrModalForm button[type="submit"]:hover {
+#nostr_ignition__nostrModalForm button[type="submit"]:hover {
     background: #333;
 }
 
-dialog#nostrModal > div > form#nostrModalForm button[type="submit"]:disabled {
+#nostr_ignition__nostrModalForm button[type="submit"]:disabled {
     background: #555;
     cursor: not-allowed;
     color: #ccc;
 }
 
-dialog#nostrModal > div > #nostrModalLearnMore {
+#nostr_ignition__nostrModalLearnMore {
     margin-top: 2rem;
     text-align: center;
     font-size: 0.75rem;
@@ -144,10 +144,10 @@ dialog#nostrModal > div > #nostrModalLearnMore {
 }
 
 /* Loading spinner */
-dialog#nostrModal #nostrModalSubmitSpinner {
+#nostr_ignition__nostrModalSubmitSpinner {
     display: none;
 }
-dialog#nostrModal #nostrModalSubmitSpinner:after {
+#nostr_ignition__nostrModalSubmitSpinner:after {
     content: " ";
     display: block;
     width: 0.8rem;
