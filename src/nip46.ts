@@ -43,7 +43,7 @@ export class Nip46 extends EventEmitter {
     private subscription: SubCloser | undefined;
     private relays: string[];
     public keys: KeyPair | undefined;
-    public remotePubkey: string | undefined;
+    public remotePubkey: string | null;
 
     /**
      * Creates a new instance of the Nip46 class.
@@ -56,7 +56,7 @@ export class Nip46 extends EventEmitter {
 
         this.pool = new SimplePool();
         this.relays = relays || DEFAULT_RELAYS;
-        this.remotePubkey = remotePubkey;
+        this.remotePubkey = remotePubkey || null;
         this.keys = keys || this.generateAndStoreKey();
         if (!this.subscription) this.subscribeToNostrConnectEvents();
     }
@@ -90,8 +90,8 @@ export class Nip46 extends EventEmitter {
      *
      * @returns The encoded remote public key, or undefined if the remote public key is not set.
      */
-    remoteNpub(): string | undefined {
-        return this.remotePubkey ? npubEncode(this.remotePubkey) : undefined;
+    remoteNpub(): string | null {
+        return this.remotePubkey ? npubEncode(this.remotePubkey) : null;
     }
 
     /**

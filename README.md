@@ -43,7 +43,7 @@ options = {
 If you want to include the default CSS, include it in your HTML as well. Otherwise, you'll need to style the modal yourself.
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nostr-ignition@latest/dist/index.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nostr-ignition@latest/dist/index.css.min" />
 ```
 
 ## Contributing
