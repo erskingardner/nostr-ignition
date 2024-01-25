@@ -1,6 +1,6 @@
 {
     "name": "nostr-ignition",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "description": "A drop-in library to implement an OAuth-like sign up experience for Nostr apps.",
     "license": "MIT",
     "keywords": [
