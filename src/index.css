@@ -1,21 +1,30 @@
-#nostr_ignition__nostrModal {
-    @media (max-width: 767px) {
+@media screen and (max-width: 767px) {
+    #nostr_ignition__nostrModal {
         width: 100%;
     }
-    @media (min-width: 768px) {
+}
+@media screen and (min-width: 768px) {
+    #nostr_ignition__nostrModal {
         width: 50%;
     }
-    @media (min-width: 1024px) {
+}
+@media screen and (min-width: 1024px) {
+    #nostr_ignition__nostrModal {
         width: 40%;
     }
-    @media (min-width: 1440px) {
+}
+@media screen and (min-width: 1440px) {
+    #nostr_ignition__nostrModal {
         width: 30%;
     }
+}
+
+#nostr_ignition__nostrModal {
     margin: 6rem auto;
     border: 1px rgba(0, 0, 0, 0.6) solid;
     border-radius: 10px;
     outline: none;
-    boxshadow: 0 1rem 2rem rgba(0, 0, 0, 0.3);
+    box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.3);
 }
 
 #nostr_ignition__nostrModal::backdrop {

@@ -4,7 +4,10 @@
         <meta charset="utf-8" />
         <link rel="preconnect" href="https://rsms.me/" />
         <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
-        <link rel="stylesheet" href="./dist/index.css" />
+        <!-- Test locally -->
+        <link rel="stylesheet" href="./dist/index.min.css" />
+        <!-- Test latest release -->
+        <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nostr-ignition@latest/dist/index.min.css" /> -->
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <style>
             body {
@@ -48,7 +51,10 @@
         </div>
 
         <!-- Include the built JS file -->
+        <!-- Test locally -->
         <script src="./dist/index.js"></script>
+        <!-- Test latest release -->
+        <!-- <script src="https://cdn.jsdelivr.net/npm/nostr-ignition@latest/dist/index.js"></script> -->
         <script>
             document.addEventListener("DOMContentLoaded", function () {
                 NostrIgnition.init({ appName: "DemoApp", redirectUri: "http://localhost:3000" });
