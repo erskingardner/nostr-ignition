@@ -1,27 +1,20 @@
 import { SimplePool } from "nostr-tools/pool";
-import { generateSecretKey, getPublicKey, finalizeEvent, type Event } from "nostr-tools/pure";
-import type { SubCloser, SubscribeManyParams } from "nostr-tools";
-import { npubEncode } from "nostr-tools/nip19";
+import { generateSecretKey, getPublicKey, finalizeEvent, type Event, type UnsignedEvent } from "nostr-tools/pure";
+import type { SubCloser, SubscribeManyParams, VerifiedEvent } from "nostr-tools";
 import { encrypt, decrypt } from "nostr-tools/nip04";
 import { NostrConnect, Handlerinformation } from "nostr-tools/kinds";
+import { bytesToHex } from "@noble/hashes/utils";
 import { EventEmitter } from "events";
+import { validateBunkerNip05, generateReqId } from "./utils";
 
 const DEFAULT_RELAYS = ["wss://relay.nostr.band", "wss://relay.nsecbunker.com"];
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-export const NPUB_REGEX = /npub1[023456789acdefghjklmnpqrstuvwxyz]{58}/;
-export const PUBKEY_REGEX = /[0-9a-z]{64}/;
+export const NPUB_REGEX = /^npub1[023456789acdefghjklmnpqrstuvwxyz]{58}$/;
+export const PUBKEY_REGEX = /^[0-9a-z]{64}$/;
 
-type KeyPair = { privateKey: Uint8Array; publicKey: string };
+export type KeyPair = { privateKey: Uint8Array; publicKey: string };
 
-type nip46Request = {
-    id: string;
-    pubkey: string;
-    method: string;
-    params: string[];
-    event: Event;
-};
-
-type nip46Response = {
+export type Nip46Response = {
     id: string;
     result: string;
     error?: string;
@@ -36,6 +29,26 @@ export type BunkerProfile = {
     picture: string;
     about: string;
     website: string;
+    local: boolean;
+};
+
+// If you're running a local nsecbunker for testing you can add it here
+// to have it show up in the list of available bunkers.
+// The pubkey is the pubkey of the nsecbunker, not the localNostrPubkey
+// The domain must be the domain configured in the nsecbunker.json file
+// All other fields are optional
+let localBunker: BunkerProfile | undefined = undefined;
+
+// Uncomment this block to add a local nsecbunker for testing
+localBunker = {
+    pubkey: "2ba00ed9b2108bf16de47fb3e2656bed051e314b1afa4dc04c213e67f41f28e1",
+    nip05: "",
+    domain: "really-trusted-oyster.ngrok-free.app",
+    name: "",
+    picture: "",
+    about: "",
+    website: "",
+    local: true,
 };
 
 export class Nip46 extends EventEmitter {
@@ -51,7 +64,7 @@ export class Nip46 extends EventEmitter {
      * @param remotePubkey - An optional remote public key. This is the key you want to sign as.
      * @param keys - An optional key pair.
      */
-    public constructor(relays?: string[], remotePubkey?: string, keys?: KeyPair) {
+    public constructor(keys?: KeyPair, remotePubkey?: string, relays?: string[]) {
         super();
 
         this.pool = new SimplePool();
@@ -62,7 +75,7 @@ export class Nip46 extends EventEmitter {
     }
 
     /**
-     * Generates a key pair, stores the pubkey in localStorage.
+     * Generates a key pair, stores the keys in localStorage.
      *
      * @private
      * @returns {void}
@@ -72,32 +85,12 @@ export class Nip46 extends EventEmitter {
         const publicKey = getPublicKey(privateKey);
         // localNostrPubkey is the key that we use to publish events asking nsecbunkers for real signatures
         localStorage.setItem("localNostrPubkey", publicKey);
+        localStorage.setItem("localNostrPrivkey", bytesToHex(privateKey));
         return { privateKey, publicKey };
     }
 
     /**
-     * Generates a unique request ID.
-     *
-     * @private
-     * @returns {string} The generated request ID.
-     */
-    private generateReqId(): string {
-        return Math.random().toString(36).substring(7);
-    }
-
-    /**
-     * Encodes the remote public key into a string representation.
-     *
-     * @returns The encoded remote public key, or undefined if the remote public key is not set.
-     */
-    remoteNpub(): string | null {
-        return this.remotePubkey ? npubEncode(this.remotePubkey) : null;
-    }
-
-    /**
      * Subscribes to Nostr Connect events (kind 24133 and 24134) for the provided keys and relays.
-     *
-     * This method subscribes to NostrConnect events using the provided keys and relays.
      * It sets up a subscription to receive events and emit events for the received responses.
      *
      * @private
@@ -109,13 +102,12 @@ export class Nip46 extends EventEmitter {
 
         // We do this alias because inside the onevent function, `this` is the event object
         // eslint-disable-next-line @typescript-eslint/no-this-alias
-        const nip46 = this;
+        // const nip46 = this;
         const parseResponseEvent = this.parseResponseEvent.bind(this);
 
         const subManyParams: SubscribeManyParams = {
             async onevent(event) {
-                const res = await parseResponseEvent(event);
-                nip46.emit("parsedResponseEvent", res);
+                parseResponseEvent(event);
             },
             oneose() {
                 console.log("EOSE received");
@@ -142,60 +134,79 @@ export class Nip46 extends EventEmitter {
         );
 
         // Validate bunkers by checking their NIP-05 and pubkey
-        const validatedBunkers = filteredEvents.filter(async (event) => {
-            const content = JSON.parse(event.content);
-            const valid = await this.validateBunkerNip05(content.nip05, event.pubkey);
-            return valid;
-        });
+        // Map to a more useful object
+        const validatedBunkers = await Promise.all(
+            filteredEvents.map(async (event) => {
+                const content = JSON.parse(event.content);
+                const valid = await validateBunkerNip05(content.nip05, event.pubkey);
+                if (valid) {
+                    return {
+                        pubkey: event.pubkey,
+                        nip05: content.nip05,
+                        domain: content.nip05.split("@")[1],
+                        name: content.name || content.display_name,
+                        picture: content.picture,
+                        about: content.about,
+                        website: content.website,
+                        local: false,
+                    };
+                }
+            })
+        );
 
-        this.emit("bunkers", "Valid bunkers found");
+        // Add local bunker if it exists
+        if (localBunker) validatedBunkers.unshift(localBunker);
 
-        // Map the events to a more useful format
-        return validatedBunkers.map((event) => {
-            const content = JSON.parse(event.content);
-            return {
-                pubkey: event.pubkey,
-                nip05: content.nip05,
-                domain: content.nip05.split("@")[1],
-                name: content.name || content.display_name,
-                picture: content.picture,
-                about: content.about,
-                website: content.website,
-            };
-        });
+        return validatedBunkers.filter((bunker) => bunker !== undefined) as BunkerProfile[];
     }
 
-    /**
-     * Checks the availability of a NIP05 address on a given domain.
-     *
-     * @param nip05 - The NIP05 address to check.
-     * @throws {Error} If the NIP05 address is invalid. e.g. not in the form `name@domain`.
-     * @returns A promise that resolves to a boolean indicating the availability of the NIP05 address.
-     */
-    async checkNip05Availability(nip05: string): Promise<boolean> {
-        if (nip05.split("@").length !== 2) throw new Error("Invalid nip05");
+    async sendRequest(id: string, method: string, params: string[], remotePubkey?: string): Promise<Nip46Response> {
+        if (!this.keys) throw new Error("No keys found");
+        const remotePk: string = (remotePubkey || this.remotePubkey) as string;
+        if (!remotePk) throw new Error("No remote public key found");
 
-        const [username, domain] = nip05.split("@");
-        const response = await fetch(`https://${domain}/.well-known/nostr.json?name=${username}`);
-        const json = await response.json();
-        return json.names[username] === undefined ? true : false;
-    }
+        // Encrypt the content for the bunker (NIP-04)
+        const encryptedContent = await encrypt(this.keys.privateKey, remotePk, JSON.stringify({ id, method, params }));
 
-    /**
-     * Validates a Bunkers NIP-05.
-     *
-     * @param nip05 - The NIP05 to validate.
-     * @param pubkey - The public key to compare against.
-     * @returns A promise that resolves to a boolean indicating whether the NIP05 is valid for the bunkers pubkey.
-     * Will also return false for invalid nip05 format.
-     */
-    async validateBunkerNip05(nip05: string, pubkey: string): Promise<boolean> {
-        if (nip05.split("@").length !== 2) return false;
+        // Create event to sign
+        const verifiedEvent: VerifiedEvent = finalizeEvent(
+            {
+                kind: method === "create_account" ? 24134 : NostrConnect,
+                tags: [["p", remotePk]],
+                content: encryptedContent,
+                created_at: Math.floor(Date.now() / 1000),
+            },
+            this.keys.privateKey
+        );
 
-        const domain = nip05.split("@")[1];
-        const response = await fetch(`https://${domain}/.well-known/nostr.json?name=_`);
-        const json = await response.json();
-        return json.names["_"] === pubkey;
+        // Build auth_url handler
+        const authHandler = (response: Nip46Response) => {
+            if (response.result) {
+                this.emit("authChallengeSuccess", response);
+            } else {
+                this.emit("authChallengeError", response.error);
+            }
+        };
+
+        // Build the response handler
+        const responsePromise = new Promise<Nip46Response>((resolve, reject) => {
+            this.once(`response-${id}`, (response: Nip46Response) => {
+                // Create account or auth challenge
+                if (response.result === "auth_url") {
+                    this.once(`response-${id}`, authHandler);
+                    resolve(response);
+                } else if (response.error) {
+                    reject(response.error);
+                } else {
+                    resolve(response);
+                }
+            });
+        });
+
+        // Publish the event
+        await Promise.any(this.pool.publish(this.relays, verifiedEvent));
+
+        return responsePromise;
     }
 
     /**
@@ -205,88 +216,67 @@ export class Nip46 extends EventEmitter {
      * @throws {Error} If no keys are found.
      * @returns An object containing the parsed response event data.
      */
-    async parseResponseEvent(event: Event): Promise<nip46Response | nip46Request> {
+    async parseResponseEvent(responseEvent: Event): Promise<Nip46Response> {
         if (!this.keys) throw new Error("No keys found");
-        const decryptedContent = await decrypt(this.keys.privateKey, event.pubkey, event.content);
+        const decryptedContent = await decrypt(this.keys.privateKey, responseEvent.pubkey, responseEvent.content);
         const parsedContent = JSON.parse(decryptedContent);
-        const { id, method, params, result, error } = parsedContent;
-        if (method) {
-            return { id, pubkey: event.pubkey, method, params, event };
-        } else {
-            return { id, result, error, event };
-        }
+        const { id, result, error, event } = parsedContent;
+        this.emit(`response-${id}`, parsedContent as Nip46Response);
+        return { id, result, error, event };
     }
 
     /**
      * Sends a ping request to the remote server.
      * Requires permission/access rights to bunker.
      * @throws {Error} If no keys are found or no remote public key is found.
-     * @returns {Promise<void>}
+     * @returns "Pong" if successful. The promise will reject if the response is not "pong".
      */
-    async ping(): Promise<void> {
+    async ping(): Promise<Nip46Response> {
         if (!this.keys) throw new Error("No keys found");
         if (!this.remotePubkey) throw new Error("No remote public key found");
 
-        const reqId = this.generateReqId();
+        const reqId = generateReqId();
         const params: string[] = [];
 
-        // Encrypt the content for the bunker
-        const encryptedContent = await encrypt(
-            this.keys.privateKey,
-            this.remotePubkey,
-            JSON.stringify({ id: reqId, method: "ping", params: params })
-        );
-
-        // Create event to connect
-        const verifiedEvent = finalizeEvent(
-            {
-                kind: NostrConnect,
-                tags: [["p", this.remotePubkey]],
-                content: encryptedContent,
-                created_at: Math.floor(Date.now() / 1000),
-            },
-            this.keys.privateKey
-        );
-        // Publish the event
-        await Promise.any(await this.pool.publish(this.relays, verifiedEvent));
+        return this.sendRequest(reqId, "ping", params, this.remotePubkey);
     }
 
     /**
      * Connects to a remote server using the provided keys and remote public key.
      * Optionally, a secret can be provided for additional authentication.
      *
+     * @param remotePubkey - Optional the remote public key to connect to.
      * @param secret - Optional secret for additional authentication.
      * @throws {Error} If no keys are found or no remote public key is found.
-     * @returns A Promise that resolves when the connection is established.
+     * @returns "ack" if successful. The promise will reject if the response is not "ack".
      */
-    async connect(secret?: string): Promise<void> {
+    async connect(remotePubkey?: string, secret?: string): Promise<Nip46Response> {
+        if (!this.keys) throw new Error("No keys found");
+        if (remotePubkey) this.remotePubkey = remotePubkey;
+        if (!this.remotePubkey) throw new Error("No remote public key found");
+
+        const reqId = generateReqId();
+        const params: string[] = [this.keys.publicKey];
+        if (secret) params.push(secret);
+
+        return this.sendRequest(reqId, "connect", params, remotePubkey);
+    }
+
+    /**
+     * Signs an event using the remote private key.
+     * @param event - The event to sign.
+     * @throws {Error} If no keys are found or no remote public key is found.
+     * @returns A Promise that resolves to the signed event.
+     */
+    async sign_event(event: UnsignedEvent): Promise<Nip46Response> {
         if (!this.keys) throw new Error("No keys found");
         if (!this.remotePubkey) throw new Error("No remote public key found");
 
-        const reqId = this.generateReqId();
-        const params = [this.keys.publicKey];
-        if (secret) params.push(secret);
+        const reqId = generateReqId();
+        // Only param is the event to sign
+        const params: string[] = [JSON.stringify(event)];
 
-        // Encrypt the content for the bunker
-        const encryptedContent = await encrypt(
-            this.keys.privateKey,
-            this.remotePubkey,
-            JSON.stringify({ id: reqId, method: "connect", params: params })
-        );
-
-        // Create event to connect
-        const verifiedEvent = finalizeEvent(
-            {
-                kind: NostrConnect,
-                tags: [["p", this.remotePubkey]],
-                content: encryptedContent,
-                created_at: Math.floor(Date.now() / 1000),
-            },
-            this.keys.privateKey
-        );
-
-        // Publish the event
-        await Promise.any(this.pool.publish(this.relays, verifiedEvent));
+        return this.sendRequest(reqId, "sign_event", params, this.remotePubkey);
     }
 
     /**
@@ -296,41 +286,21 @@ export class Nip46 extends EventEmitter {
      * @param domain - The domain for the account.
      * @param email - The optional email for the account.
      * @throws Error if no keys are found, no remote public key is found, or the email is present but invalid.
-     * @returns A Promise that resolves when the event is published.
+     * @returns A Promise that resolves to the auth_url that the client should follow to create an account.
      */
-    async createAccount(bunkerPubkey: string, username: string, domain: string, email?: string): Promise<void> {
+    async createAccount(
+        bunkerPubkey: string,
+        username: string,
+        domain: string,
+        email?: string
+    ): Promise<Nip46Response> {
         if (!this.keys) throw new Error("No keys found");
         if (email && !EMAIL_REGEX.test(email)) throw new Error("Invalid email");
 
-        const reqId = this.generateReqId();
-        const params = [username, domain, email];
+        const reqId = generateReqId();
+        const params = [username, domain];
+        if (email) params.push(email);
 
-        // Encrypt the content for the bunker
-        const encryptedContent = await encrypt(
-            this.keys.privateKey,
-            bunkerPubkey,
-            JSON.stringify({ id: reqId, method: "create_account", params: params })
-        );
-
-        // Create event to register the username
-        const verifiedEvent = finalizeEvent(
-            {
-                kind: 24134,
-                tags: [["p", bunkerPubkey]],
-                content: encryptedContent,
-                created_at: Math.floor(Date.now() / 1000),
-            },
-            this.keys.privateKey
-        );
-
-        // Publish the event
-        await Promise.any(this.pool.publish(this.relays, verifiedEvent));
-    }
-
-    /**
-     * Disposes of any resources held by the object. Should be called when finished with the object.
-     */
-    dispose(): void {
-        this.subscription?.close();
+        return this.sendRequest(reqId, "create_account", params, bunkerPubkey);
     }
 }

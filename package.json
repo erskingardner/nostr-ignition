@@ -1,51 +1,52 @@
 {
-    "name": "nostr-ignition",
-    "version": "0.0.4",
-    "description": "A drop-in library to implement an OAuth-like sign up experience for Nostr apps.",
-    "license": "MIT",
-    "keywords": [
-        "nostr",
-        "nip-46",
-        "remote-signing"
-    ],
-    "files": [
-        "dist"
-    ],
-    "author": "Jeff Gardner <erskingardner@pm.me>",
-    "repository": {
-        "type": "git",
-        "url": "git://github.com/erskingardner/nostr-ignition.git"
-    },
-    "homepage": "https://github.com/erskingardner/nostr-ignition",
-    "module": "./dist/index.js",
-    "browser": "./dist/index.js",
-    "type": "module",
-    "scripts": {
-        "build": "bun build ./src/index.ts --outdir ./dist --minify && cp src/index.css dist/ && bun run minifyCss",
-        "dev": "open demo.html && onchange src -ik -- bun run build",
-        "format": "prettier --write .",
-        "lint": "prettier --check . && eslint src/**/*.ts",
-        "test": "bun test",
-        "minifyCss": "minify dist/index.css > dist/index.min.css",
-        "prepare": "bun run lint && bun run test && bun run build"
-    },
-    "devDependencies": {
-        "@typescript-eslint/eslint-plugin": "^6.4.0",
-        "bun-types": "latest",
-        "eslint": "^8.0.1",
-        "eslint-config-prettier": "^9.1.0",
-        "eslint-config-standard-with-typescript": "latest",
-        "eslint-plugin-import": "^2.25.2",
-        "eslint-plugin-n": "^16.0.0",
-        "eslint-plugin-promise": "^6.0.0",
-        "minify": "^11.0.1",
-        "onchange": "^7.1.0",
-        "prettier": "^3.1.1"
-    },
-    "peerDependencies": {
-        "typescript": "^5.0.0"
-    },
-    "dependencies": {
-        "nostr-tools": "^2.1.2"
-    }
+  "name": "nostr-ignition",
+  "version": "0.0.4",
+  "description": "A drop-in library to implement an OAuth-like sign up experience for Nostr apps.",
+  "license": "MIT",
+  "keywords": [
+    "nostr",
+    "nip-46",
+    "remote-signing"
+  ],
+  "files": [
+    "dist"
+  ],
+  "author": "Jeff Gardner <erskingardner@pm.me>",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/erskingardner/nostr-ignition.git"
+  },
+  "homepage": "https://github.com/erskingardner/nostr-ignition",
+  "module": "./dist/index.js",
+  "browser": "./dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "bun build ./src/index.ts --outdir ./dist --minify && cp src/index.css dist/ && bun run minifyCss",
+    "build:dev": "bun build ./src/index.ts --outdir ./dist --sourcemap && cp src/index.css dist/ && bun run minifyCss",
+    "dev": "open demo.html && onchange src -ik -- bun run build:dev",
+    "format": "prettier --write .",
+    "lint": "prettier --check . && eslint src/**/*.ts",
+    "test": "bun test",
+    "minifyCss": "minify dist/index.css > dist/index.min.css",
+    "prepare": "bun run lint && bun run test && bun run build"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^6.4.0",
+    "bun-types": "latest",
+    "eslint": "^8.0.1",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-config-standard-with-typescript": "latest",
+    "eslint-plugin-import": "^2.25.2",
+    "eslint-plugin-n": "^16.0.0",
+    "eslint-plugin-promise": "^6.0.0",
+    "minify": "^11.0.1",
+    "onchange": "^7.1.0",
+    "prettier": "^3.1.1"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "nostr-tools": "^2.1.2"
+  }
 }

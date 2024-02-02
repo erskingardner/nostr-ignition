@@ -6,12 +6,14 @@
         <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
         <!-- Test locally -->
         <link rel="stylesheet" href="./dist/index.min.css" />
-        <!-- Test latest release -->
+        <!-- Test latest release, this can sometimes take a while to update on the CDN, use a specific version to force it -->
         <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nostr-ignition@latest/dist/index.min.css" /> -->
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <style>
             body {
                 font-family: "Inter", sans-serif;
+                /* background-color: #7a7a7a;
+                color: #fff; */
             }
 
             #connectionSuccess {
@@ -32,6 +34,14 @@
                 margin-top: 0.5rem;
                 font-weight: 600;
             }
+
+            #noteCode {
+                padding: 1rem;
+                background-color: #f3f3f3;
+                border: 1px solid #333;
+                border-radius: 0.5rem;
+                font-family: monospace;
+            }
         </style>
         <title>Ignition - Development</title>
     </head>
@@ -45,27 +55,54 @@
             <h2>🎊 Connected successfully! 🎊</h2>
             <img src="https://i.nostr.build/a4OQ.gif" alt="thumbs-up" />
             <div id="npubMessage">
-                The npub of your new account is:
+                The npub of your account is:
                 <div id="newNostrNpub"></div>
+            </div>
+            <div id="sign" style="margin-top: 2rem">
+                <h2>Want to try signing a note? Don't worry, we won't publish it.</h2>
+                <pre id="noteCode"></pre>
+                <button
+                    style="display: block; font-size: 1.25rem; padding: 5px 8px; margin: 0 auto"
+                    onclick="NostrIgnition.signEvent(JSON.parse(document.getElementById('noteCode').innerText))"
+                >
+                    Sign "Hello World!"
+                </button>
+                <h2 style="margin-top: 4rem">Or, open your browser console and try pinging the bunker.</h2>
+                <button
+                    style="display: block; font-size: 1.25rem; padding: 5px 8px; margin: 0 auto"
+                    onclick="NostrIgnition.ping()"
+                    id="pingButton"
+                >
+                    Ping Bunker
+                </button>
             </div>
         </div>
 
         <!-- Include the built JS file -->
         <!-- Test locally -->
         <script src="./dist/index.js"></script>
-        <!-- Test latest release -->
+        <!-- Test latest release, this can sometimes take a while to update on the CDN, use a specific version to force it -->
         <!-- <script src="https://cdn.jsdelivr.net/npm/nostr-ignition@latest/dist/index.js"></script> -->
         <script>
             document.addEventListener("DOMContentLoaded", function () {
-                NostrIgnition.init({ appName: "DemoApp", redirectUri: "http://localhost:3000" });
+                NostrIgnition.init({ appName: "DemoApp" });
             });
 
-            const checkForRemoteKey = setInterval(() => {
-                const remoteNpub = NostrIgnition.remoteNpub();
-                if (remoteNpub) {
-                    document.getElementById("newNostrNpub").innerText = remoteNpub;
+            const checkConnected = setInterval(() => {
+                if (NostrIgnition.connected()) {
+                    document.getElementById("newNostrNpub").innerText = NostrIgnition.remoteNpub();
                     document.getElementById("connectionSuccess").style.display = "flex";
-                    clearInterval(checkForRemoteKey);
+
+                    const event = {
+                        content: "Hello World!",
+                        pubkey: NostrIgnition.remotePubkey(),
+                        createdAt: Math.floor(Date.now() / 1000),
+                        kind: 1,
+                        tags: [],
+                    };
+
+                    document.getElementById("noteCode").innerText = JSON.stringify(event, null, 4);
+                    clearInterval(checkConnected);
                 }
             }, 1000);
         </script>
