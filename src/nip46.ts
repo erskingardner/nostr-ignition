@@ -37,19 +37,21 @@ export type BunkerProfile = {
 // The pubkey is the pubkey of the nsecbunker, not the localNostrPubkey
 // The domain must be the domain configured in the nsecbunker.json file
 // All other fields are optional
+
+// eslint-disable-next-line prefer-const
 let localBunker: BunkerProfile | undefined = undefined;
 
 // Uncomment this block to add a local nsecbunker for testing
-localBunker = {
-    pubkey: "2ba00ed9b2108bf16de47fb3e2656bed051e314b1afa4dc04c213e67f41f28e1",
-    nip05: "",
-    domain: "really-trusted-oyster.ngrok-free.app",
-    name: "",
-    picture: "",
-    about: "",
-    website: "",
-    local: true,
-};
+// localBunker = {
+//     pubkey: "2ba00ed9b2108bf16de47fb3e2656bed051e314b1afa4dc04c213e67f41f28e1",
+//     nip05: "",
+//     domain: "really-trusted-oyster.ngrok-free.app",
+//     name: "",
+//     picture: "",
+//     about: "",
+//     website: "",
+//     local: true,
+// };
 
 export class Nip46 extends EventEmitter {
     private pool: SimplePool;
