@@ -1,12 +1,10 @@
-# NIP-46 - Reimagined
+# NIP-46 - Nostr Connect Reimagined
 
-## Nostr Connect
+## Rationale
 
 Private keys should be exposed to as few systems - apps, operating systems, devices - as possible as each system adds to the attack surface.
 
 This NIP describes a method for 2-way communication between a remote signer and a Nostr client. The remote signer could be, for example, a hardware device dedicated to signing Nostr events, while the client is a normal Nostr client.
-
-## Rationale
 
 Currently NIP-46 uses a JSON-RPC style flow where you pass encrypted commands in `kind:24133` events. This rewrite retains the basics of the JSON-RPC style flow but clarifies requests & responses, uses new kinds, and introduces a new auth challenge response format that makes handling responses easier for clients.
 
