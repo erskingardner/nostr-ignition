@@ -317,9 +317,7 @@ Request to have a string NIP-04 encrypted.
 {
     "id": <received request id>,
     "result_type": "nip04_encrypt",
-    "result": {
-        "ciphertext": <nip04 encrypted content>
-    },
+    "result": <nip04 encrypted content>,
     "error": {
         "code": <error code>,
         "message": <error message>
