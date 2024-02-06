@@ -45,7 +45,7 @@ This also allows us to incorporate [NIP-44](https://github.com/nostr-protocol/ni
 
 ## Events
 
-#### Request Event `kind: 24135`
+### Request Event `kind: 24135`
 
 All requests from clients will use this event kind, thus, remote signers will only need to subscribe to these events.
 
@@ -60,7 +60,7 @@ All requests from clients will use this event kind, thus, remote signers will on
 }
 ```
 
-#### Response Event `kind: 24136`
+### Response Event `kind: 24136`
 
 ```json
 {
