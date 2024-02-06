@@ -14,13 +14,8 @@ This also allows us to incorporate [NIP-44](https://github.com/nostr-protocol/ni
 
 ## Terminology
 
-### Local keypair
-
-A local public and private key-pair used to encrypt content and communicate with the remote signer.
-
-### Remote pubkey
-
-The public key that the user wants to sign as. The remote signer has control of the private key that matches this public key.
+-   **Local keypair**: A local public and private key-pair used to encrypt content and communicate with the remote signer.
+-   **Remote pubkey**: The public key that the user wants to sign as. The remote signer has control of the private key that matches this public key.
 
 ## The flow
 
@@ -80,12 +75,12 @@ All requests from clients will use this event kind, thus, remote signers will on
 
 The response structure for each command is listed below along with the command. Each is a JSON object containing with `id`, `response_type`, `result`, and `error`.
 
-| Field           | Type                 | Info                                             |
-| --------------- | -------------------- | ------------------------------------------------ |
-| `id`            | `string`             | The same value as the `id` sent with the request |
-| `response_type` | `string`             | The same as the `method` sent with the request   |
-| `result`        | `string` or `object` | Present if there is NO error                     |
-| `error`         | `null` or `object`   | Present if there is an error                     |
+| Field           | Type                           | Info                                             |
+| --------------- | ------------------------------ | ------------------------------------------------ |
+| `id`            | `string`                       | The same value as the `id` sent with the request |
+| `response_type` | `string`                       | The same as the `method` sent with the request   |
+| `result`        | `string` or `object` or `null` | Present if there is NO error                     |
+| `error`         | `object` or `null`             | Present if there is an error                     |
 
 ### Auth Challenge Response
 
