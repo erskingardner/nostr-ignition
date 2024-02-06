@@ -105,6 +105,17 @@ The content of an auth challenge response (unencrypted) is a JSON object of the 
 
 ## Commands
 
+-   [create_account](#create_account)
+-   [sign_event](#sign_event)
+-   [connect](#connect)
+-   [ping](#ping)
+-   [get_relays](#get_relays)
+-   [nip04_encrypt](#nip04_encrypt)
+-   [nip04_decrypt](#nip04_decrypt)
+-   [nip44_get_key](#nip44_get_key)
+-   [nip44_encrypt](#nip44_encrypt)
+-   [nip44_decrypt](#nip44_decrypt)
+
 ### `create_account`
 
 Request a new set of keys be generated and stored on the remote signer. This is used as part of Nsecbunker's OAuth-like sign up flow.
