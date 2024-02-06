@@ -33,7 +33,7 @@ This also allows us to incorporate [NIP-44](https://github.com/nostr-protocol/ni
 
 ### Example flow for signing an event
 
-❗ _This is simplified to focus on the NIP-46 flow, it doesn't show the steps required for NIP-44 encryption._
+❗ _NB: This is simplified to focus on the NIP-46 flow, it doesn't show the steps required for NIP-44 encryption._
 
 ![Signing Flow](https://i.nostr.build/Dedj.png)
 
@@ -45,7 +45,7 @@ This also allows us to incorporate [NIP-44](https://github.com/nostr-protocol/ni
 
 ## Events
 
-### Request Event `kind: 24135`
+#### Request Event `kind: 24135`
 
 All requests from clients will use this event kind, thus, remote signers will only need to subscribe to these events.
 
@@ -60,7 +60,7 @@ All requests from clients will use this event kind, thus, remote signers will on
 }
 ```
 
-### Response Event `kind: 24136`
+#### Response Event `kind: 24136`
 
 ```json
 {
@@ -115,7 +115,7 @@ The content of an auth challenge response (unencrypted) is a JSON object of the 
 
 Request a new set of keys be generated and stored on the remote signer. This is used as part of Nsecbunker's OAuth-like sign up flow.
 
-### Request
+#### Request
 
 The `username@domain` in the params represents the user's desired NIP-05 address. Email address is optional, in the case that the remote signer gives users the ability to recover keys via email.
 
@@ -131,7 +131,7 @@ The `username@domain` in the params represents the user's desired NIP-05 address
 }
 ```
 
-### Response
+#### Response
 
 ```json
 {
@@ -151,7 +151,7 @@ The `username@domain` in the params represents the user's desired NIP-05 address
 
 Request an event be signed using a remote pubkey
 
-### Request
+#### Request
 
 ```json
 {
@@ -163,7 +163,7 @@ Request an event be signed using a remote pubkey
 }
 ```
 
-### Response
+#### Response
 
 ```json
 {
@@ -183,7 +183,7 @@ Request an event be signed using a remote pubkey
 
 Ensure that you can connect to a remote signer for a given remote pubkey.
 
-### Request
+#### Request
 
 ```json
 {
@@ -196,7 +196,7 @@ Ensure that you can connect to a remote signer for a given remote pubkey.
 }
 ```
 
-### Response
+#### Response
 
 ```json
 {
@@ -214,7 +214,7 @@ Ensure that you can connect to a remote signer for a given remote pubkey.
 
 Ping a remote signer.
 
-### Request
+#### Request
 
 ```json
 {
@@ -224,7 +224,7 @@ Ping a remote signer.
 }
 ```
 
-### Response
+#### Response
 
 ```json
 {
@@ -241,7 +241,7 @@ Ping a remote signer.
 <!-- I'm not sure if this method is useful or even works -->
 <!-- ### `get_public_key`
 
-### Request
+#### Request
 
 ```json
 {
@@ -251,7 +251,7 @@ Ping a remote signer.
 }
 ```
 
-### Response
+#### Response
 
 ```json
 {
@@ -271,7 +271,7 @@ Ping a remote signer.
 
 Ask a remote signer more information about the relays that it uses.
 
-### Request
+#### Request
 
 ```json
 {
@@ -281,7 +281,7 @@ Ask a remote signer more information about the relays that it uses.
 }
 ```
 
-### Response
+#### Response
 
 ```json
 {
@@ -304,7 +304,7 @@ Ask a remote signer more information about the relays that it uses.
 
 Request to have a string NIP-04 encrypted.
 
-### Request
+#### Request
 
 ```json
 {
@@ -317,7 +317,7 @@ Request to have a string NIP-04 encrypted.
 }
 ```
 
-### Response
+#### Response
 
 ```json
 {
@@ -335,7 +335,7 @@ Request to have a string NIP-04 encrypted.
 
 Request to have a string NIP-04 decrypted.
 
-### Request
+#### Request
 
 ```json
 {
@@ -348,7 +348,7 @@ Request to have a string NIP-04 decrypted.
 }
 ```
 
-### Response
+#### Response
 
 ```json
 {
@@ -366,7 +366,7 @@ Request to have a string NIP-04 decrypted.
 
 Request to have a new NIP-44 conversation key calculated.
 
-### Request
+#### Request
 
 ```json
 {
@@ -378,7 +378,7 @@ Request to have a new NIP-44 conversation key calculated.
 }
 ```
 
-### Response
+#### Response
 
 ```json
 {
@@ -396,7 +396,7 @@ Request to have a new NIP-44 conversation key calculated.
 
 Request to have a string NIP-44 encrypted.
 
-### Request
+#### Request
 
 ```json
 {
@@ -409,7 +409,7 @@ Request to have a string NIP-44 encrypted.
 }
 ```
 
-### Response
+#### Response
 
 ```json
 {
@@ -427,7 +427,7 @@ Request to have a string NIP-44 encrypted.
 
 Request to have a string NIP-44 decrypted.
 
-### Request
+#### Request
 
 ```json
 {
@@ -440,7 +440,7 @@ Request to have a string NIP-44 decrypted.
 }
 ```
 
-### Response
+#### Response
 
 ```json
 {
