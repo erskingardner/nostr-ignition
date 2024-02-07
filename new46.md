@@ -49,7 +49,7 @@ Clients use the `req` tag (containing a unique request id value) to listen for t
     "kind": <kind for command>, // Each command has it's own kind
     "pubkey": <local pubkey of the user>,
     "content": <nip44(<request>)>,
-    "tags": [["p", <remote pubkey>], ["req", <request id>]],
+    "tags": [["p", <remote pubkey>]],
     "created_at": <unix timestamp in seconds>,
 }
 ```
@@ -75,7 +75,7 @@ Clients use the `req` tag (containing a unique request id value) to listen for t
     "kind": 24136,
     "pubkey": <pubkey of the remote signer>,
     "content": <nip44(<response>)>,
-    "tags": [["p", <local keypair pubkey>], ["req", <request id>]],
+    "tags": [["p", <local keypair pubkey>], ["e", <id of the request event>]],
     "created_at": <unix timestamp in seconds>,
 }
 ```
@@ -105,7 +105,7 @@ All requests / commands can potentially trigger an auth challenge, which is a sp
     "kind": 24137,
     "pubkey": <pubkey of the remote signer>,
     "content": <nip44(<auth_url>)>,
-    "tags": [["p", <local keypair pubkey>], ["req", <request id>]],
+    "tags": [["p", <local keypair pubkey>], ["e", <id of the request event>]],
     "created_at": <unix timestamp in seconds>,
 }
 ```
@@ -121,7 +121,7 @@ Content is NIP-44 encrypted and uses the following format: `CODE: Error message 
     "kind": 24138,
     "pubkey": <pubkey of the remote signer>,
     "content": <nip44(<error>)>,
-    "tags": [["p", <local keypair pubkey>], ["req", <request id>]],
+    "tags": [["p", <local keypair pubkey>], ["e", <id of the request event>]],
     "created_at": <unix timestamp in seconds>,
 }
 ```
