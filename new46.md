@@ -1,4 +1,4 @@
-# NIP-46 - Nostr Connect Reimagined
+# NIP-46 - Nostr Remote Signing
 
 ## Rationale
 
@@ -6,7 +6,7 @@ Private keys should be exposed to as few systems - apps, operating systems, devi
 
 This NIP describes a method for 2-way communication between a remote signer and a Nostr client. The remote signer could be, for example, a hardware device dedicated to signing Nostr events, while the client is a normal Nostr client.
 
-Currently NIP-46 uses a JSON-RPC style flow where you pass encrypted commands in `kind:24133` events. This rewrite strives to remove as much of the JSON-RPC as possible by using uses new event kinds that correspond to each command a client might send and the three types of responses that remote signers can send back.
+Currently, NIP-46 uses a JSON-RPC style flow where you pass encrypted commands in `kind:24133` events. This rewrite strives to remove as much of the JSON-RPC as possible and uses new event kinds that correspond to each command a client might send and the three types of responses that remote signers can send back.
 
 This also allows us to incorporate [NIP-44](https://github.com/nostr-protocol/nips/blob/master/44.md) encryption in a way that doesn't break current NIP-46 implementations.
 
@@ -133,6 +133,11 @@ Content is NIP-44 encrypted and uses the following format: `CODE: Error message 
 -   `UNPROCESSABLE`: Returned if a request is malformed (e.g. incorrect request content).
 -   `OTHER`: Other error.
 
+## TODO
+
+-   [ ] Create diagrams showing the flow for normal requests and for create_account
+-   [ ] Describe/Show the various client-side checks needed (NIP-05 of bunker, availability of usernames, etc.)
+
 ## Feedback & Buy in
 
 Who else has implemented NIP-46 in it's current form?
@@ -142,9 +147,11 @@ Who else has implemented NIP-46 in it's current form?
 -   [ ] hodlbod
 -   [ ] hazrd149
 -   [ ] Kieran
--   [ ] Flare
+-   [ ] Zach from Flare
 -   [ ] Mike D
 -   [ ] Reya
+-   [ ] Alex Gleason
+-   [ ] Monlovesmango
 
 ## References
 
