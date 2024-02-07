@@ -39,7 +39,7 @@ Coming soon...
 
 ## Request Events `Multiple kinds`
 
-Request events take the following form. In order avoid JSON RPC as much as possible, there are different event kinds for each command which help remote signers to understand the request and process the content properly.
+Request events take the following form. In order simplify requests and payloads as much as possible, there are different event kinds for each command which help remote signers to understand the request and process the content properly.
 
 Clients use the `req` tag (containing a unique request id value) to listen for the response to their command.
 
