@@ -23,7 +23,7 @@
     "scripts": {
         "build": "bun build ./src/index.ts --outdir ./dist --minify && cp src/index.css dist/ && bun run minifyCss",
         "build:dev": "bun build ./src/index.ts --outdir ./dist --sourcemap && cp src/index.css dist/ && bun run minifyCss",
-        "dev": "open demo.html && onchange src -ik -- bun run build:dev",
+        "dev": "open ./example/demo.html && onchange src -ik -- bun run build:dev",
         "format": "prettier --write .",
         "lint": "prettier --check . && eslint src/**/*.ts",
         "test": "bun test",

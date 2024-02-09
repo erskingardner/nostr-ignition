@@ -89,8 +89,9 @@ const init = async (ignitionOptions: NostrIgnitionOptions) => {
             "nostr_ignition__nostrModalSignInSubmitSpinner"
         ) as HTMLSpanElement;
 
-        const SIGNIN_TIMEOUT = 10000; // 10 seconds
+        const RESPONSE_TIMEOUT = 7000; // 7 seconds
         let signInTimeoutFunction: NodeJS.Timeout | null = null;
+        let createAccountTimeoutFunction: NodeJS.Timeout | null = null;
 
         // If we had local keys, default to the sign in form
         if (pubkey && privkey) {
@@ -121,6 +122,7 @@ const init = async (ignitionOptions: NostrIgnitionOptions) => {
         // Function to reset forms
         const resetForms = () => {
             if (signInTimeoutFunction) clearTimeout(signInTimeoutFunction);
+            if (createAccountTimeoutFunction) clearTimeout(createAccountTimeoutFunction);
             nostrModalNip05.value = "";
             nostrModalNip05.classList.remove("invalid");
             nostrModalBunkerError.classList.remove("invalid");
@@ -195,6 +197,7 @@ const init = async (ignitionOptions: NostrIgnitionOptions) => {
             // Add error if we don't have valid details
             if (!nostrModalBunker.value || !bunkerPubkey) {
                 nostrModalCreateSubmit.disabled = true;
+                nostrModalBunkerError.innerText = "Error creating account";
                 nostrModalBunker.setCustomValidity("Error creating account. Please try again later.");
                 nostrModalBunker.classList.add("invalid");
                 nostrModalBunkerError.style.display = "block";
@@ -218,6 +221,15 @@ const init = async (ignitionOptions: NostrIgnitionOptions) => {
                     }
                 })
                 .catch((error) => console.error(error));
+
+            createAccountTimeoutFunction = setTimeout(() => {
+                nostrModalBunkerError.innerText = "No response from a remote signer";
+                nostrModalBunkerError.style.display = "block";
+                // Remove spinner and re-enable submit button
+                nostrModalCreateSubmit.disabled = false;
+                nostrModalCreateSubmitText.style.display = "block";
+                nostrModalCreateSubmitSpinner.style.display = "none";
+            }, RESPONSE_TIMEOUT);
         });
 
         /**
@@ -297,7 +309,7 @@ const init = async (ignitionOptions: NostrIgnitionOptions) => {
                 nostrModalSignInSubmit.disabled = false;
                 nostrModalSignInSubmitText.style.display = "block";
                 nostrModalSignInSubmitSpinner.style.display = "none";
-            }, SIGNIN_TIMEOUT);
+            }, RESPONSE_TIMEOUT);
         });
 
         nip46.on("authChallengeSuccess", async (response: Nip46Response) => {
