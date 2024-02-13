@@ -8,9 +8,12 @@ import {
     fetchCustodialbunkers,
 } from "nostr-tools/nip46";
 import { queryProfile } from "nostr-tools/nip05";
-import { npubEncode } from "nostr-tools/nip19";
+import { decode, npubEncode } from "nostr-tools/nip19";
 import { hexToBytes, bytesToHex } from "@noble/hashes/utils";
 import { SimplePool } from "nostr-tools";
+
+const NPUB_REGEX = /^npub1[023456789acdefghjklmnpqrstuvwxyz]{58}$/;
+const PUBKEY_REGEX = /^[0-9a-z]{64}$/;
 
 type NostrIgnitionOptions = {
     appName: string;
@@ -49,9 +52,13 @@ let localBunker: BunkerProfile | undefined = undefined;
 
 // Uncomment this block to add a local nsecbunker for testing
 // localBunker = {
-//     pubkey: "2ba00ed9b2108bf16de47fb3e2656bed051e314b1afa4dc04c213e67f41f28e1",
+//     bunkerPointer: {
+//         relays: ["wss://relay.nsecbunker.com"],
+//         pubkey: "<pubkey-of-nsecbunker>",
+//         secret: null,
+//     },
 //     nip05: "",
-//     domain: "really-trusted-oyster.ngrok-free.app",
+//     domain: "<domain-of-nsecbunker>", // ngrok is handy for this
 //     name: "",
 //     picture: "",
 //     about: "",
@@ -281,10 +288,34 @@ const init = async (ignitionOptions: NostrIgnitionOptions) => {
             nostrModalSignInSubmitText.style.display = "none";
             nostrModalSignInSubmitSpinner.style.display = "block";
 
-            const bunkerPointer = await parseBunkerInput(nostrModalBunkerInput.value);
+            // Allow for users to input npub or pubkey; if npub, decode it.
+            let profileDataNip05: string | undefined = undefined;
+            if (nostrModalBunkerInput.value.match(NPUB_REGEX) || nostrModalBunkerInput.value.match(PUBKEY_REGEX)) {
+                // Fetch the nip-05 value from profile
+                let pubkey: string;
+                if (nostrModalBunkerInput.value.match(NPUB_REGEX)) {
+                    pubkey = decode(nostrModalBunkerInput.value).data as string;
+                } else {
+                    pubkey = nostrModalBunkerInput.value;
+                }
+
+                console.log("Fetching profile for pubkey: ", pubkey);
+
+                const profile = await pool.querySync(["wss://relay.nostr.band"], { kinds: [0], authors: [pubkey] }, {});
+                console.log("Profile: ", profile);
+                if (profile.length > 0) {
+                    const profileData = JSON.parse(profile[0].content);
+                    profileDataNip05 = profileData.nip05;
+                }
+            }
+
+            const bunkerPointer = await parseBunkerInput((nostrModalBunkerInput.value || profileDataNip05) as string);
             if (!bunkerPointer) {
                 // Nothing matches the value - it's an error.
-                nostrModalBunkerInput.setCustomValidity("Invalid NIP-05 name@domain address or bunker:// URI.");
+                nostrModalBunkerInput.setCustomValidity("Invalid identifier or bunker:// URI");
+                nostrModalBunkerInputError.innerText =
+                    "Invalid identifier or bunker:// URI. We might also be having trouble contacting the remote signer.";
+                nostrModalBunkerInputError.style.display = "block";
                 nostrModalBunkerInput.classList.add("invalid");
                 // Remove spinner and re-enable submit button
                 nostrModalSignInSubmit.disabled = false;
@@ -431,7 +462,10 @@ const signEvent = async (event: UnsignedEvent): Promise<VerifiedEvent | void> =>
     console.log("Requesting signature...");
     return bunker
         .signEvent(event)
-        .then((signedEvent) => console.log("Event signed!", signedEvent))
+        .then((signedEvent) => {
+            console.log("Event signed!", signedEvent);
+            return signedEvent;
+        })
         .catch((error) => console.error(error));
 };
 

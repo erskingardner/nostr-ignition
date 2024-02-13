@@ -12,6 +12,9 @@
         "dist"
     ],
     "author": "Jeff Gardner <erskingardner@pm.me>",
+    "contributors": [
+        "fiatjaf <fiatjaf@gmail.com>"
+    ],
     "repository": {
         "type": "git",
         "url": "git://github.com/erskingardner/nostr-ignition.git"
@@ -26,7 +29,8 @@
         "dev": "open ./example/demo.html && onchange src -ik -- bun run build:dev",
         "format": "prettier --write .",
         "lint": "prettier --check . && eslint src/**/*.ts",
-        "minifyCss": "minify dist/index.css > dist/index.min.css"
+        "minifyCss": "minify dist/index.css > dist/index.min.css",
+        "prepare": "bun run lint && bun run build"
     },
     "devDependencies": {
         "@typescript-eslint/eslint-plugin": "^6.4.0",
