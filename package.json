@@ -26,12 +26,11 @@
         "dev": "open ./example/demo.html && onchange src -ik -- bun run build:dev",
         "format": "prettier --write .",
         "lint": "prettier --check . && eslint src/**/*.ts",
-        "test": "bun test",
-        "minifyCss": "minify dist/index.css > dist/index.min.css",
-        "prepare": "bun run lint && bun run test && bun run build"
+        "minifyCss": "minify dist/index.css > dist/index.min.css"
     },
     "devDependencies": {
         "@typescript-eslint/eslint-plugin": "^6.4.0",
+        "@types/web": "latest",
         "bun-types": "latest",
         "eslint": "^8.0.1",
         "eslint-config-prettier": "^9.1.0",
@@ -47,6 +46,6 @@
         "typescript": "^5.0.0"
     },
     "dependencies": {
-        "nostr-tools": "^2.1.2"
+        "nostr-tools": "2.1.7"
     }
 }
