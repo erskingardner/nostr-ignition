@@ -1,6 +1,6 @@
 {
     "name": "nostr-ignition",
-    "version": "0.0.5",
+    "version": "0.0.6",
     "description": "A drop-in library to implement an OAuth-like sign up experience for Nostr apps.",
     "license": "MIT",
     "keywords": [
@@ -12,6 +12,9 @@
         "dist"
     ],
     "author": "Jeff Gardner <erskingardner@pm.me>",
+    "contributors": [
+        "fiatjaf <fiatjaf@gmail.com>"
+    ],
     "repository": {
         "type": "git",
         "url": "git://github.com/erskingardner/nostr-ignition.git"
@@ -23,15 +26,15 @@
     "scripts": {
         "build": "bun build ./src/index.ts --outdir ./dist --minify && cp src/index.css dist/ && bun run minifyCss",
         "build:dev": "bun build ./src/index.ts --outdir ./dist --sourcemap && cp src/index.css dist/ && bun run minifyCss",
-        "dev": "open demo.html && onchange src -ik -- bun run build:dev",
+        "dev": "open ./example/demo.html && onchange src -ik -- bun run build:dev",
         "format": "prettier --write .",
         "lint": "prettier --check . && eslint src/**/*.ts",
-        "test": "bun test",
         "minifyCss": "minify dist/index.css > dist/index.min.css",
-        "prepare": "bun run lint && bun run test && bun run build"
+        "prepare": "bun run lint && bun run build"
     },
     "devDependencies": {
         "@typescript-eslint/eslint-plugin": "^6.4.0",
+        "@types/web": "latest",
         "bun-types": "latest",
         "eslint": "^8.0.1",
         "eslint-config-prettier": "^9.1.0",
@@ -47,6 +50,6 @@
         "typescript": "^5.0.0"
     },
     "dependencies": {
-        "nostr-tools": "^2.1.2"
+        "nostr-tools": "2.1.7"
     }
 }

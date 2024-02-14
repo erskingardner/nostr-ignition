@@ -1,10 +1,19 @@
-import { NIP05_REGEX, queryProfile } from "nostr-tools/nip05";
-import { NPUB_REGEX, Nip46, PUBKEY_REGEX } from "./nip46";
-import type { Nip46Response, BunkerProfile, KeyPair } from "./nip46";
+import { generateSecretKey, VerifiedEvent, type UnsignedEvent } from "nostr-tools/pure";
+import {
+    BunkerSigner,
+    BunkerProfile,
+    BunkerSignerParams,
+    createAccount,
+    parseBunkerInput,
+    fetchCustodialbunkers,
+} from "nostr-tools/nip46";
+import { queryProfile } from "nostr-tools/nip05";
 import { decode, npubEncode } from "nostr-tools/nip19";
-import type { UnsignedEvent } from "nostr-tools";
-import { hexToBytes } from "@noble/hashes/utils";
-import { checkNip05Availability } from "./utils";
+import { hexToBytes, bytesToHex } from "@noble/hashes/utils";
+import { SimplePool } from "nostr-tools";
+
+const NPUB_REGEX = /^npub1[023456789acdefghjklmnpqrstuvwxyz]{58}$/;
+const PUBKEY_REGEX = /^[0-9a-z]{64}$/;
 
 type NostrIgnitionOptions = {
     appName: string;
@@ -13,10 +22,49 @@ type NostrIgnitionOptions = {
 };
 
 let options: NostrIgnitionOptions;
-let nip46: Nip46;
+const pool = new SimplePool();
+let bunker: BunkerSigner;
 let availableBunkers: BunkerProfile[] = [];
-let localBunker: BunkerProfile | undefined = undefined;
+let hadLocalKeypair = false;
 let hasConnected = false;
+let clientSecret: Uint8Array;
+const bunkerSignerParams: BunkerSignerParams = {
+    pool,
+    onauth(url: string) {
+        clearTimeout(signInTimeoutFunction);
+        clearTimeout(createAccountTimeoutFunction);
+        openNewWindow(`${url}?redirect_uri=${options.redirectUri}`);
+    },
+};
+const RESPONSE_TIMEOUT = 7000; // 7 seconds
+let signInTimeoutFunction: NodeJS.Timeout | undefined;
+let createAccountTimeoutFunction: NodeJS.Timeout | undefined;
+let resetForms = () => {};
+
+// If you're running a local nsecbunker for testing you can add it here
+// to have it show up in the list of available bunkers.
+// The pubkey is the pubkey of the nsecbunker, not the localNostrPubkey
+// The domain must be the domain configured in the nsecbunker.json file
+// All other fields are optional
+
+// eslint-disable-next-line prefer-const
+let localBunker: BunkerProfile | undefined = undefined;
+
+// Uncomment this block to add a local nsecbunker for testing
+// localBunker = {
+//     bunkerPointer: {
+//         relays: ["wss://relay.nsecbunker.com"],
+//         pubkey: "<pubkey-of-nsecbunker>",
+//         secret: null,
+//     },
+//     nip05: "",
+//     domain: "<domain-of-nsecbunker>", // ngrok is handy for this
+//     name: "",
+//     picture: "",
+//     about: "",
+//     website: "",
+//     local: true,
+// };
 
 const init = async (ignitionOptions: NostrIgnitionOptions) => {
     // Only do something if the window.nostr object doesn't exist
@@ -25,22 +73,21 @@ const init = async (ignitionOptions: NostrIgnitionOptions) => {
     if (!(window as any).nostr) {
         console.log("Initializing Nostr Ignition...");
 
-        const pubkey = localStorage.getItem("localNostrPubkey");
-        const privkey = localStorage.getItem("localNostrPrivkey");
-        if (pubkey && privkey) {
-            console.log("Using local keypair");
-            const keys: KeyPair = { privateKey: hexToBytes(privkey), publicKey: pubkey };
-            nip46 = new Nip46(keys); // instantiate the NIP-46 class with local keys
+        availableBunkers = await fetchCustodialbunkers(pool, ["wss://relay.nostr.band", "wss://relay.nsecbunker.com"]);
+        if (localBunker) {
+            availableBunkers.unshift(localBunker);
+        }
+
+        const local = localStorage.getItem("nip46ClientSecretKey");
+        if (local) {
+            clientSecret = hexToBytes(local);
+            hadLocalKeypair = true;
         } else {
-            console.log("Generating new keypair");
-            nip46 = new Nip46(); // instantiate the NIP-46 class with no keys
+            clientSecret = generateSecretKey();
+            localStorage.setItem("nip46ClientSecretKey", bytesToHex(clientSecret));
         }
 
         options = ignitionOptions; // Set the options
-
-        // Check for available bunkers have to do this before modal is created
-        availableBunkers = await nip46.fetchBunkers();
-        localBunker = availableBunkers.find((bunker) => bunker.local) || undefined;
 
         // Build the modal
         const modal = await createModal(); // Create the modal element
@@ -73,12 +120,13 @@ const init = async (ignitionOptions: NostrIgnitionOptions) => {
         ) as HTMLSpanElement;
 
         // Sign in form
-        const nostrModalNpubOrNip05 = document.getElementById(
-            "nostr_ignition__nostrModalNpubOrNip05"
+        const nostrModalBunkerInput = document.getElementById(
+            "nostr_ignition__nostrModalBunkerInput"
         ) as HTMLInputElement;
-        const nostrModalNpubOrNip05Error = document.getElementById(
-            "nostr_ignition__nostrModalNpubOrNip05Error"
+        const nostrModalBunkerInputError = document.getElementById(
+            "nostr_ignition__nostrModalBunkerInputError"
         ) as HTMLSpanElement;
+        const nostrModalSignInForm = document.getElementById("nostr_ignition__nostrSignInForm") as HTMLButtonElement;
         const nostrModalSignInSubmit = document.getElementById(
             "nostr_ignition__nostrModalSignInSubmit"
         ) as HTMLButtonElement;
@@ -89,11 +137,8 @@ const init = async (ignitionOptions: NostrIgnitionOptions) => {
             "nostr_ignition__nostrModalSignInSubmitSpinner"
         ) as HTMLSpanElement;
 
-        const SIGNIN_TIMEOUT = 10000; // 10 seconds
-        let signInTimeoutFunction: NodeJS.Timeout | null = null;
-
         // If we had local keys, default to the sign in form
-        if (pubkey && privkey) {
+        if (hadLocalKeypair) {
             nostrModalCreateContainer.style.display = "none";
             nostrModalConnectContainer.style.display = "block";
         }
@@ -119,8 +164,9 @@ const init = async (ignitionOptions: NostrIgnitionOptions) => {
         });
 
         // Function to reset forms
-        const resetForms = () => {
-            if (signInTimeoutFunction) clearTimeout(signInTimeoutFunction);
+        resetForms = () => {
+            clearTimeout(signInTimeoutFunction);
+            clearTimeout(createAccountTimeoutFunction);
             nostrModalNip05.value = "";
             nostrModalNip05.classList.remove("invalid");
             nostrModalBunkerError.classList.remove("invalid");
@@ -129,9 +175,9 @@ const init = async (ignitionOptions: NostrIgnitionOptions) => {
             nostrModalCreateSubmit.disabled = false;
             nostrModalCreateSubmitText.style.display = "block";
             nostrModalCreateSubmitSpinner.style.display = "none";
-            nostrModalNpubOrNip05.value = "";
-            nostrModalNpubOrNip05.classList.remove("invalid");
-            nostrModalNpubOrNip05Error.style.display = "none";
+            nostrModalBunkerInput.value = "";
+            nostrModalBunkerInput.classList.remove("invalid");
+            nostrModalBunkerInputError.style.display = "none";
             nostrModalSignInSubmit.disabled = false;
             nostrModalSignInSubmitText.style.display = "block";
             nostrModalSignInSubmitSpinner.style.display = "none";
@@ -163,23 +209,21 @@ const init = async (ignitionOptions: NostrIgnitionOptions) => {
          */
 
         // Add event listener to the username input to check availability
-        nostrModalNip05.addEventListener("input", function () {
-            checkNip05Availability(`${nostrModalNip05.value}@${nostrModalBunker.value}`, localBunker).then(
-                (available) => {
-                    if (available) {
-                        nostrModalNip05.setCustomValidity("");
-                        nostrModalCreateSubmit.disabled = false;
-                        nostrModalNip05.classList.remove("invalid");
-                        nostrModalNip05Error.style.display = "none";
-                        nostrModalBunkerError.style.display = "none";
-                    } else {
-                        nostrModalCreateSubmit.disabled = true;
-                        nostrModalNip05.setCustomValidity("Username is not available");
-                        nostrModalNip05.classList.add("invalid");
-                        nostrModalNip05Error.style.display = "block";
-                    }
-                }
-            );
+        nostrModalNip05.addEventListener("input", async function () {
+            const profile = await queryProfile(`${nostrModalNip05.value}@${nostrModalBunker.value}`);
+            if (!profile) {
+                // is available
+                nostrModalNip05.setCustomValidity("");
+                nostrModalCreateSubmit.disabled = false;
+                nostrModalNip05.classList.remove("invalid");
+                nostrModalNip05Error.style.display = "none";
+                nostrModalBunkerError.style.display = "none";
+            } else {
+                nostrModalCreateSubmit.disabled = true;
+                nostrModalNip05.setCustomValidity("Username is not available");
+                nostrModalNip05.classList.add("invalid");
+                nostrModalNip05Error.style.display = "block";
+            }
         });
 
         // Add an event listener to the form to create the account
@@ -190,11 +234,12 @@ const init = async (ignitionOptions: NostrIgnitionOptions) => {
             nostrModalCreateSubmitText.style.display = "none";
             nostrModalCreateSubmitSpinner.style.display = "block";
 
-            const bunkerPubkey = availableBunkers.find((bunker) => bunker.domain === nostrModalBunker.value)?.pubkey;
+            const chosenBunker = availableBunkers.find((bunker) => bunker.domain === nostrModalBunker.value);
 
             // Add error if we don't have valid details
-            if (!nostrModalBunker.value || !bunkerPubkey) {
+            if (!nostrModalBunker.value || !chosenBunker) {
                 nostrModalCreateSubmit.disabled = true;
+                nostrModalBunkerError.innerText = "Error creating account";
                 nostrModalBunker.setCustomValidity("Error creating account. Please try again later.");
                 nostrModalBunker.classList.add("invalid");
                 nostrModalBunkerError.style.display = "block";
@@ -206,18 +251,16 @@ const init = async (ignitionOptions: NostrIgnitionOptions) => {
             }
 
             // Trigger the create account flow
-            createAccount(
-                bunkerPubkey,
-                nostrModalNip05.value,
-                nostrModalBunker.value,
-                nostrModalEmail.value || undefined
-            )
-                .then((response) => {
-                    if (response && response.error) {
-                        openNewWindow(`${response.error}?redirect_uri=${options.redirectUri}`);
-                    }
-                })
-                .catch((error) => console.error(error));
+            create(chosenBunker, nostrModalNip05.value, nostrModalBunker.value, nostrModalEmail.value || undefined);
+
+            createAccountTimeoutFunction = setTimeout(() => {
+                nostrModalBunkerError.innerText = "No response from a remote signer";
+                nostrModalBunkerError.style.display = "block";
+                // Remove spinner and re-enable submit button
+                nostrModalCreateSubmit.disabled = false;
+                nostrModalCreateSubmitText.style.display = "block";
+                nostrModalCreateSubmitSpinner.style.display = "none";
+            }, RESPONSE_TIMEOUT);
         });
 
         /**
@@ -227,11 +270,11 @@ const init = async (ignitionOptions: NostrIgnitionOptions) => {
          */
 
         // Add event listener to enable submit button
-        nostrModalNpubOrNip05.addEventListener("input", function () {
-            nostrModalNpubOrNip05Error.innerText = "";
-            nostrModalNpubOrNip05Error.style.display = "none";
-            nostrModalNpubOrNip05.classList.remove("invalid");
-            if (nostrModalNpubOrNip05.value.length > 0) {
+        nostrModalBunkerInput.addEventListener("input", function () {
+            nostrModalBunkerInputError.innerText = "";
+            nostrModalBunkerInputError.style.display = "none";
+            nostrModalBunkerInput.classList.remove("invalid");
+            if (nostrModalBunkerInput.value.length > 0) {
                 nostrModalSignInSubmit.disabled = false;
             } else {
                 nostrModalSignInSubmit.disabled = true;
@@ -239,40 +282,41 @@ const init = async (ignitionOptions: NostrIgnitionOptions) => {
         });
 
         // Add event listener for sign in form
-        nostrModalSignInSubmit.addEventListener("click", async function (event) {
+        nostrModalSignInForm.addEventListener("submit", async function (event) {
             event.preventDefault();
             nostrModalSignInSubmit.disabled = true;
             nostrModalSignInSubmitText.style.display = "none";
             nostrModalSignInSubmitSpinner.style.display = "block";
 
-            let remotePubkey: string | null = null;
-            // Order is important here. NIP05_REGEX is pretty loose so it will match an npub
-            if (NPUB_REGEX.test(nostrModalNpubOrNip05.value)) {
-                // Decode pubkey from npub
-                remotePubkey = decode(nostrModalNpubOrNip05.value).data as string;
-            } else if (PUBKEY_REGEX.test(nostrModalNpubOrNip05.value)) {
-                // Looks like a pubkey
-                remotePubkey = nostrModalNpubOrNip05.value;
-            } else if (NIP05_REGEX.test(nostrModalNpubOrNip05.value)) {
-                // Look up pubkey for nip05
-                const profilePointer = await queryProfile(nostrModalNpubOrNip05.value);
-                if (profilePointer) {
-                    remotePubkey = profilePointer.pubkey;
+            // Allow for users to input npub or pubkey; if npub, decode it.
+            let profileDataNip05: string | undefined = undefined;
+            if (nostrModalBunkerInput.value.match(NPUB_REGEX) || nostrModalBunkerInput.value.match(PUBKEY_REGEX)) {
+                // Fetch the nip-05 value from profile
+                let pubkey: string;
+                if (nostrModalBunkerInput.value.match(NPUB_REGEX)) {
+                    pubkey = decode(nostrModalBunkerInput.value).data as string;
                 } else {
-                    nostrModalNpubOrNip05.setCustomValidity("Error fetching Pubkey from NIP-05 value.");
-                    nostrModalNpubOrNip05.classList.add("invalid");
-                    nostrModalNpubOrNip05Error.innerText = "Error fetching Pubkey from NIP-05 value.";
-                    nostrModalNpubOrNip05Error.style.display = "block";
-                    // Remove spinner and re-enable submit button
-                    nostrModalSignInSubmit.disabled = false;
-                    nostrModalSignInSubmitText.style.display = "block";
-                    nostrModalSignInSubmitSpinner.style.display = "none";
-                    return;
+                    pubkey = nostrModalBunkerInput.value;
                 }
-            } else {
+
+                console.log("Fetching profile for pubkey: ", pubkey);
+
+                const profile = await pool.querySync(["wss://relay.nostr.band"], { kinds: [0], authors: [pubkey] }, {});
+                console.log("Profile: ", profile);
+                if (profile.length > 0) {
+                    const profileData = JSON.parse(profile[0].content);
+                    profileDataNip05 = profileData.nip05;
+                }
+            }
+
+            const bunkerPointer = await parseBunkerInput((nostrModalBunkerInput.value || profileDataNip05) as string);
+            if (!bunkerPointer) {
                 // Nothing matches the value - it's an error.
-                nostrModalNpubOrNip05.setCustomValidity("Invalid Pubkey, npub, or NIP-05");
-                nostrModalNpubOrNip05.classList.add("invalid");
+                nostrModalBunkerInput.setCustomValidity("Invalid identifier or bunker:// URI");
+                nostrModalBunkerInputError.innerText =
+                    "Invalid identifier or bunker:// URI. We might also be having trouble contacting the remote signer.";
+                nostrModalBunkerInputError.style.display = "block";
+                nostrModalBunkerInput.classList.add("invalid");
                 // Remove spinner and re-enable submit button
                 nostrModalSignInSubmit.disabled = false;
                 nostrModalSignInSubmitText.style.display = "block";
@@ -280,39 +324,18 @@ const init = async (ignitionOptions: NostrIgnitionOptions) => {
                 return;
             }
 
-            connect(remotePubkey)
-                .then((response) => {
-                    if (response && response.result === "ack") {
-                        hasConnected = true;
-                        resetForms();
-                    }
-                })
-                .catch((error) => console.error(error));
+            bunker = new BunkerSigner(clientSecret, bunkerPointer, bunkerSignerParams);
+            connect();
 
             signInTimeoutFunction = setTimeout(() => {
-                nostrModalNpubOrNip05Error.innerText =
-                    "No response from a remote signer. Are you sure there is an available remote signer managing this Pubkey?";
-                nostrModalNpubOrNip05Error.style.display = "block";
+                nostrModalBunkerInputError.innerText =
+                    "No response from a remote signer. Are you sure there is an available remote signer managing this public key?";
+                nostrModalBunkerInputError.style.display = "block";
                 // Remove spinner and re-enable submit button
                 nostrModalSignInSubmit.disabled = false;
                 nostrModalSignInSubmitText.style.display = "block";
                 nostrModalSignInSubmitSpinner.style.display = "none";
-            }, SIGNIN_TIMEOUT);
-        });
-
-        nip46.on("authChallengeSuccess", async (response: Nip46Response) => {
-            if (response.result === "ack") {
-                console.log("Connected to bunker");
-                hasConnected = true;
-                resetForms();
-            } else if (response.result === "pong") {
-                console.log("Pong!");
-            } else if (PUBKEY_REGEX.test(response.result)) {
-                console.log("Account created with pubkey: ", response.result);
-                nip46.remotePubkey = response.result;
-                hasConnected = true;
-                resetForms();
-            }
+            }, RESPONSE_TIMEOUT);
         });
     }
 };
@@ -349,12 +372,12 @@ const createModal = async (): Promise<HTMLDialogElement> => {
             <button id="nostr_ignition__switchToSignIn" class="nostr_ignition__linkButton">Already have a Nostr account? Sign in instead.</button>
         </div>
         <div id="nostr_ignition__connectAccount" style="display:none;">
-            <p style="text-align: center;">Sign in with your Pubkey, npub, or NIP-05.</p>
+            <p style="text-align: center;">Sign in with your NIP-05 or bunker URI.</p>
             <form id="nostr_ignition__nostrSignInForm" class="nostr_ignition__nostrModalForm">
                 <span class="nostr_ignition__inputWrapper">
-                    <input type="text" id="nostr_ignition__nostrModalNpubOrNip05" name="nostrModalNpubOrNip05" placeholder="Pubkey, npub, or NIP-05" required />
+                    <input type="text" id="nostr_ignition__nostrModalBunkerInput" name="nostrModalBunkerInput" placeholder="name@domain or bunker://" required />
                 </span>
-                <span id="nostr_ignition__nostrModalNpubOrNip05Error" class="nostr_ignition__nostrModalError"></span>
+                <span id="nostr_ignition__nostrModalBunkerInputError" class="nostr_ignition__nostrModalError"></span>
                 <button type="submit" id="nostr_ignition__nostrModalSignInSubmit" disabled>
                     <span id="nostr_ignition__nostrModalSignInSubmitText">Sign in</span>
                     <span id="nostr_ignition__nostrModalSignInSubmitSpinner"></span>
@@ -362,7 +385,7 @@ const createModal = async (): Promise<HTMLDialogElement> => {
             </form>
             <button id="nostr_ignition__switchToCreateAccount" class="nostr_ignition__linkButton">No Nostr account? Create a new account.</button>
         </div>
-        <div id="nostr_ignition__nostrModalLearnMore">Not sure what Nostr is? Check out <a href="https://nostr.how" target="_blank">Nostr.how</a> for more info</div>
+        <div id="nostr_ignition__nostrModalLearnMore">Not sure what Nostr is? Check out <a href="https://nostr.how" target="_blank">Nostr.how</a> for more info!</div>
     `;
     dialog.appendChild(dialogContent);
 
@@ -389,79 +412,67 @@ const openNewWindow = (url: string): void => {
 };
 
 const remoteNpub = (): string | null => {
-    return nip46.remotePubkey ? npubEncode(nip46.remotePubkey) : null;
+    return bunker.remotePubkey ? npubEncode(bunker.remotePubkey) : null;
 };
 
 const remotePubkey = (): string | null => {
-    return nip46.remotePubkey;
+    return bunker.remotePubkey;
 };
 
 const connected = (): boolean => {
     return hasConnected;
 };
 
-const connect = async (remotePubkey: string): Promise<Nip46Response | void> => {
-    console.log("Connecting to bunker...");
-    return nip46
-        .connect(remotePubkey)
-        .then((response) => {
-            if (response.result === "auth_url" && response.error) {
-                openNewWindow(`${response.error}?redirect_uri=${options.redirectUri}`);
-            }
-            return response;
-        })
-        .catch((error) => console.error(error));
-};
-
-const createAccount = async (
-    bunkerPubkey: string,
+const create = async (
+    bunkerProfile: BunkerProfile,
     username: string,
     domain: string,
-    email?: string
-): Promise<Nip46Response | void> => {
-    console.log("Creating account...");
-    return nip46
-        .createAccount(bunkerPubkey, username, domain, email)
-        .then((response) => response)
+    email?: string | undefined
+): Promise<string> => {
+    return createAccount(bunkerProfile, bunkerSignerParams, username, domain, email).then((newBunker) => {
+        bunker = newBunker;
+        console.log("Account created with pubkey: ", bunker.remotePubkey);
+        hasConnected = true;
+        resetForms();
+        return bunker.remotePubkey;
+    });
+};
+
+const connect = async (): Promise<void> => {
+    console.log("Connecting to bunker...");
+    return bunker
+        .connect()
+        .then(() => {
+            console.log("Connected to bunker!");
+            hasConnected = true;
+            resetForms();
+        })
         .catch((error) => console.error(error));
 };
 
-const ping = async (): Promise<Nip46Response | void> => {
+const ping = async (): Promise<void> => {
     console.log("Pinging bunker...");
-    nip46
+    bunker
         .ping()
-        .then((response) => {
-            if (response.result === "pong") {
-                console.log("Pong!");
-            } else if (response.result === "auth_url" && response.error) {
-                openNewWindow(`${response.error}?redirect_uri=${options.redirectUri}`);
-            }
-            return response;
-        })
+        .then(() => console.log("Pong!"))
         .catch((error) => console.error(error));
 };
 
-const signEvent = async (event: UnsignedEvent): Promise<Nip46Response | void> => {
+const signEvent = async (event: UnsignedEvent): Promise<VerifiedEvent | void> => {
     console.log("Requesting signature...");
-    return nip46
-        .sign_event(event)
-        .then((response) => {
-            if (response.result === "auth_url" && response.error) {
-                openNewWindow(`${response.error}?redirect_uri=${options.redirectUri}`);
-            } else {
-                console.log("Signed event:", JSON.parse(response.result));
-            }
-            return response;
+    return bunker
+        .signEvent(event)
+        .then((signedEvent) => {
+            console.log("Event signed!", signedEvent);
+            return signedEvent;
         })
-        .catch((error) => {
-            console.error(error);
-        });
+        .catch((error) => console.error(error));
 };
 
 export default {
     init,
-    createAccount,
     ping,
+    create,
     connect,
     signEvent,
     remoteNpub,
