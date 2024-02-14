@@ -15,6 +15,42 @@ This also allows us to incorporate [NIP-44](https://github.com/nostr-protocol/ni
 -   **Local keypair**: A local public and private key-pair used to encrypt content and communicate with the remote signer.
 -   **Remote pubkey**: The public key that the user wants to sign as. The remote signer has control of the private key that matches this public key.
 
+## Signer Discovery
+
+To initiate a connection between a client and a remote signer there are a few different options.
+
+### Direct connection initiated by remote signer
+
+This is most common in a situation where you have your own nsecbunker or other type of remote signer and want to connect through a client that supports remote signing.
+
+The remote signer would provide a connection token in the form:
+
+```
+bunker://<hex-pubkey-you-want-to-sign-as>?relay=<wss://relay-to-connect-on>&relay=<wss://another-relay-to-connect-on>&secret=<optional-secret-value>
+```
+
+This token is pasted into the client by the user and the client then uses the details to connect to the remote signer via the specified relay(s).
+
+### Direct connection initiated by the client
+
+In this case, basically the opposite direction of the first case, the client provides a connection token (or encodes the token in a QR code) and the signer initiates a connection to the client via the specified relay(s).
+
+```
+nostrconnect://<client-key-hex>?relay=<wss://relay-to-connect-on>&metadata=<json metadata in the form: {"name":"...", "url": "...", "description": "..."}>
+```
+
+### Remote signer discovery via NIP-89
+
+In this last case, most often used to fascilitate an OAuth-like signin flow, the client first looks for remote signers that have announced themselves via NIP-89 application handler events.
+
+First the client will query for `kind: 31989` events that have a `k` tag of `24133` and/or any of the new request kinds detailed below.
+
+These are generally shown to a user, and once the user selects which remote signer to use and provides the remote pubkey they want to use (via npub, pubkey, or nip-05 value), the client can initiate a connection. Note that it's on the user to select the remote signer that is actually managing the remote key that they would like to use in this case. If the remote pubkey is managed on another remote signer, the connection will fail.
+
+In addition, it's important that clients validate that the pubkey of the announced remote signer matches the pubkey of the `_` entry in the `/.well-known/nostr.json` file of the remote signer's announced domain.
+
+Clients that allow users to create new accounts should also consider validating the availability of a given username in the namespace of remote signer's domain by checking the `/.well-known/nostr.json` file for existing usernames. Clients can then show users feedback in the UI before sending a `create_account` event to the remote signer and receiving an error in return.
+
 ## The flow
 
 ### Client-side
@@ -41,7 +77,7 @@ Coming soon...
 
 Request events take the following form. In order simplify requests and payloads as much as possible, there are different event kinds for each command which help remote signers to understand the request and process the content properly.
 
-Clients use the `req` tag (containing a unique request id value) to listen for the response to their command.
+Clients can subscribe to events of `kind: 24136`, `kind: 24137`, and `kind: 24138` that have an "e" tag containing the ID of their request event to listen for the response, auth_challenge, or error to their command.
 
 ```json
 {
@@ -54,18 +90,18 @@ Clients use the `req` tag (containing a unique request id value) to listen for t
 }
 ```
 
-| Kind    | Command                  | Content field (always NIP-44 encrypted)     | Data Type               |
-| ------- | ------------------------ | ------------------------------------------- | ----------------------- |
-| `24140` | `create_account`         | [username, domain, email (optional)]        | JSON stringified array  |
-| `24141` | `connect`                | -                                           | null                    |
-| `24142` | `sign_event`             | nostr event to sign                         | JSON stringified object |
-| `24143` | `ping`                   | -                                           | null                    |
-| `24144` | `get_relays`             | -                                           | null                    |
-| `24145` | `nip04_encrypt`          | [third_party_pubkey, plaintext to encrypt]  | JSON stringified tuple  |
-| `24146` | `nip04_decrypt`          | [third_party_pubkey, ciphertext to decrypt] | JSON stringified tuple  |
-| `24147` | `nip44_conversation_key` | third_party_pubkey                          | string                  |
-| `24148` | `nip44_encrypt`          | [third_party_pubkey, plaintext to encrypt]  | JSON stringified tuple  |
-| `24149` | `nip44_decrypt`          | [third_party_pubkey, ciphertext to decrypt] | JSON stringified tuple  |
+| Kind    | Command                  | Content field (always NIP-44 encrypted)                                         | Data Type               |
+| ------- | ------------------------ | ------------------------------------------------------------------------------- | ----------------------- |
+| `24140` | `create_account`         | {username: <username>, domain: <domain>, <any other arbitrary key/value pairs>} | JSON stringified object |
+| `24141` | `connect`                | -                                                                               | null                    |
+| `24142` | `sign_event`             | nostr event to sign                                                             | JSON stringified object |
+| `24143` | `ping`                   | -                                                                               | null                    |
+| `24144` | `get_relays`             | -                                                                               | null                    |
+| `24145` | `nip04_encrypt`          | {third_party_pubkey: <third_party_pubkey>, content: <plaintext to encrypt>}     | JSON stringified object |
+| `24146` | `nip04_decrypt`          | {third_party_pubkey: <third_party_pubkey>, content: <ciphertext to decrypt>}    | JSON stringified object |
+| `24147` | `nip44_conversation_key` | third_party_pubkey                                                              | string                  |
+| `24148` | `nip44_encrypt`          | {third_party_pubkey: <third_party_pubkey>, content: <plaintext to encrypt>}     | JSON stringified object |
+| `24149` | `nip44_decrypt`          | {third_party_pubkey: <third_party_pubkey>, content: <ciphertext to decrypt>}    | JSON stringified object |
 
 ## Response Event `kind: 24136`
 
@@ -113,7 +149,7 @@ All requests / commands can potentially trigger an auth challenge, which is a sp
 ## Error Event `kind: 24138`
 
 Error response (a separate kind in order to make errors easier to handle on the client side).
-Content is NIP-44 encrypted and uses the following format: `CODE: Error message text`. [Error codes](#error-codes) are detailed below.
+Content is NIP-44 encrypted string in the following format: `CODE: Error message text`. [Error codes](#error-codes) are detailed below.
 
 ```json
 {
@@ -132,26 +168,6 @@ Content is NIP-44 encrypted and uses the following format: `CODE: Error message 
 -   `NOT FOUND`: Returned if the remote signer doesn't have access to the remote pubkeys corresponding private key.
 -   `UNPROCESSABLE`: Returned if a request is malformed (e.g. incorrect request content).
 -   `OTHER`: Other error.
-
-## TODO
-
--   [ ] Create diagrams showing the flow for normal requests and for create_account
--   [ ] Describe/Show the various client-side checks needed (NIP-05 of bunker, availability of usernames, etc.)
-
-## Feedback & Buy in
-
-Who else has implemented NIP-46 in it's current form?
-
--   [ ] fiatjaf
--   [ ] pablof7z
--   [ ] hodlbod
--   [ ] hazrd149
--   [ ] Kieran
--   [ ] Zach from Flare
--   [ ] Mike D
--   [ ] Reya
--   [ ] Alex Gleason
--   [ ] Monlovesmango
 
 ## References
 
